@@ -1,7 +1,6 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
-import com.google.i18n.phonenumbers.Phonenumber;
 import javafx.application.Application;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
@@ -32,16 +31,8 @@ public class PhoneNumberFieldApp extends Application {
         return "(" + code.phonePrefix() + ") " + code;
     };
 
-    private static final Function<Object, String> PHONE_NUMBER_CONVERTER = c -> {
-        if (c == null) {
-            return null;
-        }
-        Phonenumber.PhoneNumber number = (Phonenumber.PhoneNumber) c;
-        return number.getRawInput();
-    };
-
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
         PhoneNumberField field = new PhoneNumberField();
 
         VBox controls = new VBox(10);
