@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <name>GemsFXParent</name>
+    <groupId>com.dlsc.phonenumberfx</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <parent>
+        <groupId>com.dlsc</groupId>
+        <artifactId>dlsc-maven-parent</artifactId>
+        <version>1.2.0</version>
+    </parent>
+
+    <modules>
+        <module>phonenumberfx</module>
+        <module>phonenumberfx-demo</module>
+    </modules>
+
+    <description>Parent project of PhoneNumberFX
+    </description>
+
+    <url>https://github.com/dlemmermann/PhoneNumberFX</url>
+    <licenses>
+        <license>
+            <name>Apache 2.0</name>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Dirk Lemmermann</name>
+            <email>dlemmermann@gmail.com</email>
+            <organization>DLSC Software &amp; Consulting GmbH</organization>
+            <url>http://www.dlsc.com</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/dlsc-software-consulting-gmbh/PhoneNumberFX</url>
+    </scm>
+
+    <properties>
+        <project.identifier>phonenumberfx</project.identifier>
+        <project.github.repository>dlsc-software-consulting-gmbh/PhoneNumberFX</project.github.repository>
+        <local.repository.path>/tmp/repository</local.repository.path>
+        <java.version>11</java.version>
+        <javafx.version>17.0.8</javafx.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <asciidoctor.maven.plugin.version>1.6.0</asciidoctor.maven.plugin.version>
+        <asciidoctorj.version>1.6.2</asciidoctorj.version>
+        <jruby.version>9.2.6.0</jruby.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-graphics</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-controls</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-swing</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-web</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-fxml</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.2</version>
+                <configuration>
+                    <failOnError>false</failOnError>
+                    <force>true</force>
+                    <windowtitle>PhoneNumberFX API</windowtitle>
+                    <additionalJOption>-J-Djavafx.javadoc=true
+                    </additionalJOption>
+                    <docfilessubdirs>true</docfilessubdirs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-docs
+                        </id> <!-- this is used for inheritance merges -->
+                        <phase>package
+                        </phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

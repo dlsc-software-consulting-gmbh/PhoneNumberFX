@@ -1,0 +1,12 @@
+{
+  "samples": [
+    {
+      "category": "gemsfx",
+      "name": "Phone Number Field",
+      "desc": "A field for entering a phone number",
+      "project": "PhoneNumberFX",
+      "preview": "/preview-phone-number-field.png",
+      "classname": "com.dlsc.phonenumberfx.demo.PhoneNumberFieldApp"
+    }
+  ]
+}
