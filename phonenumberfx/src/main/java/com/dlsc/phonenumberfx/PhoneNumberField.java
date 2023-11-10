@@ -102,35 +102,29 @@ public class PhoneNumberField extends Control {
                 // Set the value first, so that the binding will be triggered
                 super.set(newRawPhoneNumber);
 
-                if (newRawPhoneNumber == null || newRawPhoneNumber.isEmpty()) {
+                // Resolve all dependencies out of the raw phone number
+                CountryCallingCode code = resolver.call(newRawPhoneNumber);
+
+                if (code != null) {
+                    setCountryCallingCode(code);
+                    formatter.setFormattedNationalNumber(newRawPhoneNumber);
+
+                    try {
+                        Phonenumber.PhoneNumber number = phoneNumberUtil.parse(getRawPhoneNumber(), code.iso2Code());
+                        setValid(phoneNumberUtil.isValidNumber(number));
+                        setE164PhoneNumber(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.E164));
+                        setNationalPhoneNumber(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
+                    } catch (Exception e) {
+                        setValid(true);
+                        setE164PhoneNumber(null);
+                        setNationalPhoneNumber(null);
+                    }
+                } else {
                     setCountryCallingCode(null);
                     formatter.setFormattedNationalNumber(null);
                     setValid(true);
                     setE164PhoneNumber(null);
                     setNationalPhoneNumber(null);
-
-                } else {
-
-                    CountryCallingCode code = resolver.call(newRawPhoneNumber);
-                    setCountryCallingCode(code);
-                    formatter.setFormattedNationalNumber(newRawPhoneNumber);
-
-                    if (code != null) {
-                        try {
-                            Phonenumber.PhoneNumber number = phoneNumberUtil.parse(getRawPhoneNumber(), code.iso2Code());
-                            setValid(phoneNumberUtil.isValidNumber(number));
-                            setE164PhoneNumber(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.E164));
-                            setNationalPhoneNumber(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
-                        } catch (Exception e) {
-                            setValid(true);
-                            setE164PhoneNumber(null);
-                            setNationalPhoneNumber(null);
-                        }
-                    } else {
-                        setValid(true);
-                        setE164PhoneNumber(null);
-                        setNationalPhoneNumber(null);
-                    }
                 }
 
             } finally {
