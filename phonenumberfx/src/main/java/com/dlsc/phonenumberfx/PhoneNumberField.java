@@ -26,6 +26,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
 import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -102,8 +103,13 @@ public class PhoneNumberField extends Control {
                 imageView.setFitHeight(24);
                 imageView.setFitWidth(24);
                 imageView.setPreserveRatio(true);
+                imageView.getStyleClass().add("flag-image-view");
                 Optional.ofNullable(FLAG_IMAGES.get(code)).ifPresent(imageView::setImage);
-                return imageView;
+
+                StackPane wrapper = new StackPane(imageView);
+                wrapper.getStyleClass().add("flag-wrapper");
+
+                return wrapper;
             }
 
             return new FontIcon(BootstrapIcons.GLOBE2);

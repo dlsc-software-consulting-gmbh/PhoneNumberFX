@@ -63,8 +63,15 @@
     -fx-alignment: center;
 }
 
-.country-calling-code-cell {
+.phone-number-field > .combo-box .list-view .country-calling-code-cell {
     -fx-padding: 5px;
 }
 
+.phone-number-field > .combo-box .list-view .country-calling-code-cell.preferred {
+    -fx-font-weight: bold;
+}
 
+.phone-number-field > .combo-box .list-view .country-calling-code-cell .flag-wrapper {
+    -fx-padding: 1px;
+    -fx-background-color: -fx-selection-bar-text;
+}

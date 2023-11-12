@@ -5,7 +5,6 @@ import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
-import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Skin;
@@ -119,7 +118,7 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
             StackPane flagBox = new StackPane();
             flagBox.getStyleClass().add("flag-box");
 
-            Runnable flagUpdater = () -> flagBox.getChildren().setAll(getCountryCodeFlagView(getSkinnable().getCountryCallingCode()));
+            Runnable flagUpdater = () -> flagBox.getChildren().setAll(getSkinnable().getCountryCodeViewFactory().call(getSkinnable().getCountryCallingCode()));
             getSkinnable().countryCallingCodeProperty().addListener(obs -> flagUpdater.run());
             getSkinnable().countryCodeViewFactoryProperty().addListener(obs -> flagUpdater.run());
             flagUpdater.run();
@@ -170,15 +169,15 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
         }
 
         @Override
-        protected void updateItem(PhoneNumberField.CountryCallingCode item, boolean empty) {
-            super.updateItem(item, empty);
+        protected void updateItem(PhoneNumberField.CountryCallingCode code, boolean empty) {
+            super.updateItem(code, empty);
 
             int index = -1;
 
-            if (item != null && !empty) {
-                setText(new Locale("en", item.iso2Code()).getDisplayCountry());
-                setGraphic(getCountryCodeFlagView(item));
-                index = getSkinnable().getPreferredCountryCodes().indexOf(item);
+            if (code != null && !empty) {
+                setText(new Locale("en", code.iso2Code()).getDisplayCountry());
+                setGraphic(getSkinnable().getCountryCodeViewFactory().call(code));
+                index = getSkinnable().getPreferredCountryCodes().indexOf(code);
             } else {
                 setText(null);
                 setGraphic(null);
@@ -196,10 +195,5 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
                 getStyleClass().remove("last");
             }
         }
-
-    }
-
-    private Node getCountryCodeFlagView(PhoneNumberField.CountryCallingCode code) {
-        return getSkinnable().getCountryCodeViewFactory().call(code);
     }
 }
