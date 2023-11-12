@@ -26,10 +26,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
-import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
-import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -112,7 +111,9 @@ public class PhoneNumberField extends Control {
                 return wrapper;
             }
 
-            return new FontIcon(BootstrapIcons.GLOBE2);
+            Region globeRegion = new Region();
+            globeRegion.getStyleClass().add("globe");
+            return globeRegion;
         });
     }
 

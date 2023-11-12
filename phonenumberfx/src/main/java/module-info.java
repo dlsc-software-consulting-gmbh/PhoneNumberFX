@@ -4,9 +4,6 @@ module com.dlsc.phonenumberfx {
     requires transitive javafx.controls;
 
     requires libphonenumber;
-    requires org.kordamp.ikonli.core;
-    requires org.kordamp.ikonli.javafx;
-    requires org.kordamp.ikonli.bootstrapicons;
 
     exports com.dlsc.phonenumberfx;
     exports com.dlsc.phonenumberfx.skins;
