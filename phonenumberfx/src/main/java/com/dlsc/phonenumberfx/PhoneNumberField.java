@@ -22,11 +22,16 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.util.Callback;
+import org.kordamp.ikonli.bootstrapicons.BootstrapIcons;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +49,14 @@ import java.util.function.UnaryOperator;
  * </p>
  */
 public class PhoneNumberField extends Control {
+
+    private static final Map<CountryCallingCode, Image> FLAG_IMAGES = new HashMap<>();
+
+    static {
+        for (CountryCallingCode code : CountryCallingCode.Defaults.values()) {
+            FLAG_IMAGES.put(code, new Image(Objects.requireNonNull(PhoneNumberField.class.getResource("phonenumberfield/country-flags/" + code.iso2Code().toLowerCase() + ".png")).toExternalForm()));
+        }
+    }
 
     /**
      * Pseudo class used to visualize the error state of the control.
@@ -75,6 +88,26 @@ public class PhoneNumberField extends Control {
 
         rawPhoneNumberProperty().addListener((obs, oldV, newV) -> Platform.runLater(() -> formatter.setFormattedNationalNumber(getRawPhoneNumber())));
         validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(ERROR_PSEUDO_CLASS, !newV));
+
+        countryCodeViewFactory.addListener((obs, oldValue, newValue) -> {
+            if (newValue == null) {
+                setCountryCodeViewFactory(oldValue);
+                throw new IllegalArgumentException("country code view factory can not be null");
+            }
+        });
+
+        setCountryCodeViewFactory(code -> {
+            if (code != null) {
+                ImageView imageView = new ImageView();
+                imageView.setFitHeight(24);
+                imageView.setFitWidth(24);
+                imageView.setPreserveRatio(true);
+                Optional.ofNullable(FLAG_IMAGES.get(code)).ifPresent(imageView::setImage);
+                return imageView;
+            }
+
+            return new FontIcon(BootstrapIcons.GLOBE2);
+        });
     }
 
     @Override
@@ -90,6 +123,7 @@ public class PhoneNumberField extends Control {
     // VALUES
     private final StringProperty rawPhoneNumber = new SimpleStringProperty(this, "rawPhoneNumber") {
         private boolean selfUpdate;
+
         @Override
         public void set(String newRawPhoneNumber) {
             if (selfUpdate) {
@@ -151,6 +185,7 @@ public class PhoneNumberField extends Control {
 
     private final ObjectProperty<CountryCallingCode> countryCallingCode = new SimpleObjectProperty<>(this, "countryCallingCode") {
         private boolean selfUpdate;
+
         @Override
         public void set(CountryCallingCode newCountryCallingCode) {
             if (selfUpdate) {
@@ -585,8 +620,7 @@ public class PhoneNumberField extends Control {
             YEMEN(967, "YE"),
             ZAMBIA(260, "ZM"),
             ZANZIBAR(255, "TZ"),
-            ZIMBABWE(263, "ZW")
-            ;
+            ZIMBABWE(263, "ZW");
 
             private final int countryCode;
             private final String iso2Code;
@@ -715,7 +749,7 @@ public class PhoneNumberField extends Control {
             StringBuilder phoneNumber = new StringBuilder();
 
             if (formattedLocalPhoneNumber != null && !formattedLocalPhoneNumber.isEmpty()) {
-                for (char  c: formattedLocalPhoneNumber.toCharArray()) {
+                for (char c : formattedLocalPhoneNumber.toCharArray()) {
                     if (Character.isDigit(c)) {
                         phoneNumber.append(c);
                     }
