@@ -1,7 +1,7 @@
 {
   "samples": [
     {
-      "category": "gemsfx",
+      "category": "phonenumberfx",
       "name": "Phone Number Field",
       "desc": "A field for entering a phone number",
       "project": "PhoneNumberFX",

@@ -109,7 +109,7 @@
                                 </excludes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <outputFile>target/gemsfx-${project.version}-all.jar</outputFile>
+                            <outputFile>target/phonenumberfx-${project.version}-all.jar</outputFile>
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
