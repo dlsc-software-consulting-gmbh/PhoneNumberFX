@@ -1,7 +1,6 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
-import com.google.i18n.phonenumbers.Phonenumber;
 import javafx.application.Application;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
@@ -29,19 +28,11 @@ public class PhoneNumberFieldApp extends Application {
             return null;
         }
         PhoneNumberField.CountryCallingCode code = (PhoneNumberField.CountryCallingCode) c;
-        return "(+" + code.phonePrefix() + ") " + code;
-    };
-
-    private static final Function<Object, String> PHONE_NUMBER_CONVERTER = c -> {
-        if (c == null) {
-            return null;
-        }
-        Phonenumber.PhoneNumber number = (Phonenumber.PhoneNumber) c;
-        return number.getRawInput();
+        return "(" + code.phonePrefix() + ") " + code;
     };
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
         PhoneNumberField field = new PhoneNumberField();
 
         VBox controls = new VBox(10);
@@ -52,7 +43,9 @@ public class PhoneNumberFieldApp extends Application {
 
         VBox fields = new VBox(10);
         addField(fields, "Country Code", field.countryCallingCodeProperty(), COUNTRY_CODE_CONVERTER);
-        addField(fields, "Phone Number", field.phoneNumberProperty(), PHONE_NUMBER_CONVERTER);
+        addField(fields, "Raw PhoneNumber", field.rawPhoneNumberProperty());
+        addField(fields, "E164 PhoneNumber", field.e164PhoneNumberProperty());
+        addField(fields, "National PhoneNumber", field.nationalPhoneNumberProperty());
 
         VBox vBox = new VBox(20);
         vBox.setPadding(new Insets(20));
@@ -109,7 +102,7 @@ public class PhoneNumberFieldApp extends Application {
 
     private Node clearButton(PhoneNumberField field) {
         Button clear = new Button("Clear all");
-        clear.setOnAction(evt -> field.setPhoneNumber(null));
+        clear.setOnAction(evt -> field.setRawPhoneNumber(null));
         return clear;
     }
 
