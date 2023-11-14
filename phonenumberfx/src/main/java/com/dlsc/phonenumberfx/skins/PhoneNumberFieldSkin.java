@@ -1,81 +1,91 @@
 package com.dlsc.phonenumberfx.skins;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
+import com.dlsc.phonenumberfx.PhoneNumberField.Country;
 import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Skin;
 import javafx.scene.control.SkinBase;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
 
-    private static final Comparator<PhoneNumberField.CountryCallingCode> NAME_SORT_ASC = (c1, c2) -> {
+    private static final Map<Country, Image> FLAG_IMAGES = new HashMap<>();
+
+    static {
+        for (Country country : Country.values()) {
+            FLAG_IMAGES.put(country, new Image(Objects.requireNonNull(PhoneNumberField.class.getResource("country-flags/" + country.iso2Code().toLowerCase() + ".png")).toExternalForm()));
+        }
+    }
+
+    private static final Comparator<Country> NAME_SORT_ASC = (c1, c2) -> {
         String c1Name = new Locale("en", c1.iso2Code()).getDisplayCountry();
         String c2Name = new Locale("en", c2.iso2Code()).getDisplayCountry();
         return c1Name.compareTo(c2Name);
     };
 
-    public PhoneNumberFieldSkin(PhoneNumberField field, TextField textField) {
+    private final ComboBox<Country> comboBox = new ComboBox<>();
+
+    public PhoneNumberFieldSkin(PhoneNumberField field) {
         super(field);
 
-        ObservableList<PhoneNumberField.CountryCallingCode> callingCodes = FXCollections.observableArrayList();
+        ObservableList<Country> countries = FXCollections.observableArrayList();
         Runnable callingCodesUpdater = () -> {
-            Set<PhoneNumberField.CountryCallingCode> temp1 = new TreeSet<>(NAME_SORT_ASC);
-            Set<PhoneNumberField.CountryCallingCode> temp2 = new TreeSet<>(NAME_SORT_ASC);
+            Set<Country> temp1 = new TreeSet<>(NAME_SORT_ASC);
+            Set<Country> temp2 = new TreeSet<>(NAME_SORT_ASC);
 
-            field.getAvailableCountryCodes().forEach(code -> {
-                if (!field.getPreferredCountryCodes().contains(code)) {
+            field.getAvailableCountries().forEach(code -> {
+                if (!field.getPreferredCountries().contains(code)) {
                     temp2.add(code);
                 }
             });
 
-            field.getPreferredCountryCodes().forEach(code -> {
-                if (field.getAvailableCountryCodes().contains(code)) {
+            field.getPreferredCountries().forEach(code -> {
+                if (field.getAvailableCountries().contains(code)) {
                     temp1.add(code);
                 }
             });
 
-            List<PhoneNumberField.CountryCallingCode> temp = new ArrayList<>();
+            List<Country> temp = new ArrayList<>();
             temp.addAll(temp1);
             temp.addAll(temp2);
-            callingCodes.setAll(temp);
+            countries.setAll(temp);
 
-            if (field.getCountryCallingCode() != null && !temp.contains(field.getCountryCallingCode())) {
+            if (field.getSelectedCountry() != null && !temp.contains(field.getSelectedCountry())) {
                 field.setRawPhoneNumber(null); // Clear up the value in case the country code is not available anymore
             }
         };
 
         InvalidationListener listener = obs -> callingCodesUpdater.run();
-        field.getAvailableCountryCodes().addListener(listener);
-        field.getPreferredCountryCodes().addListener(listener);
-        field.countryCodeViewFactoryProperty().addListener(listener);
+        field.getAvailableCountries().addListener(listener);
+        field.getPreferredCountries().addListener(listener);
+        field.countryCellFactoryProperty().addListener(listener);
         callingCodesUpdater.run();
 
-        PhoneNumberEditor editor = new PhoneNumberEditor(textField);
+        PhoneNumberEditor editor = new PhoneNumberEditor(field.getEditor());
 
-        ComboBox<PhoneNumberField.CountryCallingCode> comboBox = new ComboBox<>();
+        field.setCountryCellFactory(listView -> new CountryCell());
+
         comboBox.setButtonCell(editor);
-        comboBox.setCellFactory(lv -> new CountryCallingCodeCell());
-        comboBox.setItems(callingCodes);
+        comboBox.cellFactoryProperty().bind(field.countryCellFactoryProperty());
+        comboBox.setItems(countries);
         comboBox.setMaxWidth(Double.MAX_VALUE);
         comboBox.setMaxHeight(Double.MAX_VALUE);
         comboBox.setFocusTraversable(false);
-        comboBox.valueProperty().bindBidirectional(field.countryCallingCodeProperty());
+        comboBox.valueProperty().bindBidirectional(field.selectedCountryProperty());
 
         // Manually handle mouse event either on the text field or the trigger button box
         field.addEventFilter(MouseEvent.MOUSE_RELEASED, evt -> {
@@ -105,7 +115,7 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
         getChildren().addAll(comboBox);
     }
 
-    private final class PhoneNumberEditor extends ListCell<PhoneNumberField.CountryCallingCode> {
+    private final class PhoneNumberEditor extends ListCell<Country> {
 
         final TextField textField;
         final HBox buttonBox = new HBox();
@@ -118,9 +128,9 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
             StackPane flagBox = new StackPane();
             flagBox.getStyleClass().add("flag-box");
 
-            Runnable flagUpdater = () -> flagBox.getChildren().setAll(getSkinnable().getCountryCodeViewFactory().call(getSkinnable().getCountryCallingCode()));
-            getSkinnable().countryCallingCodeProperty().addListener(obs -> flagUpdater.run());
-            getSkinnable().countryCodeViewFactoryProperty().addListener(obs -> flagUpdater.run());
+            Runnable flagUpdater = () -> flagBox.getChildren().setAll(getCountryGraphic(getSkinnable().getSelectedCountry()));
+            getSkinnable().selectedCountryProperty().addListener(obs -> flagUpdater.run());
+            getSkinnable().countryCellFactoryProperty().addListener(obs -> flagUpdater.run());
             flagUpdater.run();
 
             Region arrow = new Region();
@@ -133,11 +143,12 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
             buttonBox.getStyleClass().add("button-box");
             buttonBox.getChildren().addAll(flagBox, arrowButton);
             buttonBox.managedProperty().bind(buttonBox.visibleProperty());
-            buttonBox.disableProperty().bind(getSkinnable().disableCountryCodeProperty());
+            buttonBox.disableProperty().bind(getSkinnable().disableCountryDropdownProperty());
         }
 
         @Override
         protected Skin<?> createDefaultSkin() {
+
             return new SkinBase<>(this) {
                 {
                     getChildren().addAll(buttonBox, textField);
@@ -153,31 +164,29 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
                 }
             };
         }
-
     }
 
-    private final class CountryCallingCodeCell extends ListCell<PhoneNumberField.CountryCallingCode> {
+    private class CountryCell extends ListCell<Country> {
 
-        private CountryCallingCodeCell() {
-            getStyleClass().add("country-calling-code-cell");
+        private CountryCell() {
+            getStyleClass().add("country-cell");
         }
 
         @Override
         public String getUserAgentStylesheet() {
-            // This is needed to get the cell styled up
             return getSkinnable().getUserAgentStylesheet();
         }
 
         @Override
-        protected void updateItem(PhoneNumberField.CountryCallingCode code, boolean empty) {
-            super.updateItem(code, empty);
+        protected void updateItem(Country country, boolean empty) {
+            super.updateItem(country, empty);
 
             int index = -1;
 
-            if (code != null && !empty) {
-                setText(new Locale("en", code.iso2Code()).getDisplayCountry());
-                setGraphic(getSkinnable().getCountryCodeViewFactory().call(code));
-                index = getSkinnable().getPreferredCountryCodes().indexOf(code);
+            if (country != null && !empty) {
+                setText(new Locale("en", country.iso2Code()).getDisplayCountry());
+                setGraphic(getCountryGraphic(country));
+                index = getSkinnable().getPreferredCountries().indexOf(country);
             } else {
                 setText(null);
                 setGraphic(null);
@@ -185,7 +194,7 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
 
             if (index >= 0) {
                 getStyleClass().add("preferred");
-                if (index == getSkinnable().getPreferredCountryCodes().size() - 1) {
+                if (index == getSkinnable().getPreferredCountries().size() - 1) {
                     getStyleClass().add("last");
                 } else {
                     getStyleClass().remove("last");
@@ -195,5 +204,33 @@ public class PhoneNumberFieldSkin extends SkinBase<PhoneNumberField> {
                 getStyleClass().remove("last");
             }
         }
+    }
+
+    /**
+     * Subclasses of this skin can easily override this method to simply return different
+     * flags / globe.
+     *
+     * @param country the country code
+     * @return a node representing the country (normally the country's flag)
+     */
+    protected Node getCountryGraphic(Country country) {
+        if (country != null) {
+            ImageView imageView = new ImageView();
+            imageView.setFitHeight(20);
+            imageView.setFitWidth(20);
+            imageView.setPreserveRatio(true);
+            imageView.getStyleClass().add("flag-image-view");
+            Optional.ofNullable(FLAG_IMAGES.get(country)).ifPresent(imageView::setImage);
+
+            StackPane wrapper = new StackPane(imageView);
+            wrapper.getStyleClass().add("flag-wrapper");
+            wrapper.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+            return wrapper;
+        }
+
+        Region globeRegion = new Region();
+        globeRegion.getStyleClass().add("globe");
+        return globeRegion;
     }
 }

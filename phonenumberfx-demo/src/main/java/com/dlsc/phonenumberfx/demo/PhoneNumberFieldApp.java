@@ -1,6 +1,7 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
+import com.dlsc.phonenumberfx.PhoneNumberField.Country;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -26,7 +27,7 @@ public class PhoneNumberFieldApp extends Application {
         if (c == null) {
             return null;
         }
-        PhoneNumberField.CountryCallingCode code = (PhoneNumberField.CountryCallingCode) c;
+        Country code = (Country) c;
         return "(" + code.phonePrefix() + ")" + code;
     };
 
@@ -78,12 +79,12 @@ public class PhoneNumberFieldApp extends Application {
 
     private Node buildCustomAvailableCountriesSample() {
         PhoneNumberField field = new PhoneNumberField();
-        field.getAvailableCountryCodes().setAll(
-            PhoneNumberField.CountryCallingCode.Defaults.COLOMBIA,
-            PhoneNumberField.CountryCallingCode.Defaults.GERMANY,
-            PhoneNumberField.CountryCallingCode.Defaults.UNITED_STATES,
-            PhoneNumberField.CountryCallingCode.Defaults.UNITED_KINGDOM,
-            PhoneNumberField.CountryCallingCode.Defaults.SWITZERLAND);
+        field.getAvailableCountries().setAll(
+            Country.COLOMBIA,
+            Country.GERMANY,
+            Country.UNITED_STATES,
+            Country.UNITED_KINGDOM,
+            Country.SWITZERLAND);
 
         String title = "Available Countries (Customized)";
         String description = "A control with modified list of available countries.";
@@ -94,10 +95,10 @@ public class PhoneNumberFieldApp extends Application {
     private Node buildPreferredCountriesSample() {
         PhoneNumberField field = new PhoneNumberField();
 
-        field.getPreferredCountryCodes().setAll(
-            PhoneNumberField.CountryCallingCode.Defaults.SWITZERLAND,
-            PhoneNumberField.CountryCallingCode.Defaults.GERMANY,
-            PhoneNumberField.CountryCallingCode.Defaults.UNITED_KINGDOM);
+        field.getPreferredCountries().setAll(
+            Country.SWITZERLAND,
+            Country.GERMANY,
+            Country.UNITED_KINGDOM);
 
         String title = "Preferred Countries";
         String description = "Preferred countries all shown at the top of the list always.";
@@ -107,8 +108,8 @@ public class PhoneNumberFieldApp extends Application {
 
     private Node buildDisabledCountrySelectorSample() {
         PhoneNumberField field = new PhoneNumberField();
-        field.setCountryCallingCode(PhoneNumberField.CountryCallingCode.Defaults.GERMANY);
-        field.setDisableCountryCode(true);
+        field.setSelectedCountry(Country.GERMANY);
+        field.setDisableCountryDropdown(true);
 
         String title = "Disabled Country Selector";
         String description = "Disables the country selector button so it forces the control to keep always the same country.";
@@ -121,6 +122,7 @@ public class PhoneNumberFieldApp extends Application {
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 1.4em;");
 
         Label descriptionLabel = new Label(description);
+        descriptionLabel.setWrapText(true);
 
         VBox leftBox = new VBox(20);
         leftBox.setAlignment(Pos.CENTER_LEFT);
@@ -139,7 +141,7 @@ public class PhoneNumberFieldApp extends Application {
         rightBox.getColumnConstraints().addAll(column1, column2);
         rightBox.setPrefWidth(400);
 
-        addField(rightBox, "Country Code", field.countryCallingCodeProperty(), COUNTRY_CODE_CONVERTER);
+        addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
         addField(rightBox, "Raw Number", field.rawPhoneNumberProperty());
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
@@ -147,7 +149,7 @@ public class PhoneNumberFieldApp extends Application {
         HBox hBox = new HBox(30);
         hBox.getChildren().addAll(leftBox, rightBox);
         hBox.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(leftBox, Priority.ALWAYS);
+        HBox.setHgrow(leftBox, Priority.NEVER);
         HBox.setHgrow(rightBox, Priority.ALWAYS);
 
         return hBox;
