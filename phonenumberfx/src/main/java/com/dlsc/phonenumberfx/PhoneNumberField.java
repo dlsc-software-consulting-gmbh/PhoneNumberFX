@@ -226,7 +226,7 @@ public class PhoneNumberField extends Control {
         return countryCallingCodeProperty().get();
     }
 
-    private void setCountryCallingCode(CountryCallingCode countryCallingCode) {
+    public final void setCountryCallingCode(CountryCallingCode countryCallingCode) {
         countryCallingCodeProperty().set(countryCallingCode);
     }
 
@@ -669,7 +669,8 @@ public class PhoneNumberField extends Control {
             textField.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
                 if (e.getCode() == KeyCode.BACK_SPACE
                     && (textField.getText() == null || textField.getText().isEmpty())
-                    && getCountryCallingCode() != null) {
+                    && getCountryCallingCode() != null
+                    && !isDisableCountryCode()) {
 
                     // Clear up the country code if the user deletes the entire text
                     setRawPhoneNumber(null);
