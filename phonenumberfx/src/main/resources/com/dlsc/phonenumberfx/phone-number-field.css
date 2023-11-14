@@ -62,6 +62,11 @@
     -fx-alignment: center;
 }
 
+.phone-number-field > .combo-box > .editor > .button-box > .flag-box .flag-wrapper {
+    -fx-padding: 1px;
+    -fx-background-color: -fx-box-border;
+}
+
 .phone-number-field > .combo-box .globe {
     -size: 1.2em;
     -fx-pref-width: -size;

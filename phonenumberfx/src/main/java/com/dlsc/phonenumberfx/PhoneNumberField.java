@@ -107,6 +107,7 @@ public class PhoneNumberField extends Control {
 
                 StackPane wrapper = new StackPane(imageView);
                 wrapper.getStyleClass().add("flag-wrapper");
+                wrapper.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
                 return wrapper;
             }
