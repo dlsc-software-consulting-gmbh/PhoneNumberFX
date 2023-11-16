@@ -5,41 +5,37 @@
     -fx-text-fill: red;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper {
-    -fx-spacing: 2px;
-}
-
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box {
+.phone-number-field > .left-pane > .combo-box {
     -fx-pref-width: 30px;
     -fx-background-color: transparent;
     -fx-padding: 0px;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .graphics {
+.phone-number-field > .left-pane > .combo-box .graphics {
     -fx-padding: 0px 0px;
     -fx-alignment: center;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .arrow-button {
+.phone-number-field > .left-pane > .combo-box .arrow-button {
     -fx-padding: 0px;
     -fx-background-radius: 0px;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .arrow-button .arrow {
+.phone-number-field > .left-pane > .combo-box .arrow-button .arrow {
     -fx-background-color: -fx-text-background-color;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .graphics .flag-wrapper {
+.phone-number-field > .left-pane > .combo-box .graphics .flag-wrapper {
     -fx-padding: 1px;
     -fx-background: -fx-control-inner-background;
     -fx-background-color: -fx-selection-bar-text;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .globe-button {
+.phone-number-field > .left-pane > .combo-box > .globe-button {
     -fx-padding: 5px;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .globe-button > .globe {
+.phone-number-field > .left-pane > .combo-box > .globe-button > .globe {
     -size: 1.2em;
     -fx-pref-width: -size;
     -fx-pref-height: -size;
@@ -53,15 +49,15 @@
     -fx-shape: "M0 12 Q0 8.7188 1.5938 5.9688 Q3.2031 3.2031 5.9531 1.6094 Q8.7188 0 12 0 Q15.2812 0 18.0312 1.6094 Q20.7969 3.2031 22.3906 5.9688 Q24 8.7188 24 12 Q24 15.2812 22.3906 18.0469 Q20.7969 20.7969 18.0312 22.4062 Q15.2812 24 12 24 Q8.7188 24 5.9531 22.4062 Q3.2031 20.7969 1.5938 18.0469 Q0 15.2812 0 12 ZM11.2812 1.5938 Q9.6875 2.0781 8.4062 4.4062 Q8.0781 5.0469 7.8438 5.6875 Q9.4375 6.0781 11.2812 6.1562 L11.2812 1.5938 ZM6.4062 5.2812 Q6.7188 4.4844 7.1094 3.7188 Q7.5156 2.9531 8 2.3125 Q6.0781 3.125 4.5625 4.5625 Q5.4375 4.9531 6.4062 5.2812 ZM5.2812 11.2812 Q5.3594 8.875 5.9219 6.7188 Q4.7188 6.3125 3.5938 5.7656 Q1.7656 8.1562 1.5156 11.2812 L5.2812 11.2812 ZM7.3594 7.125 Q6.7969 9.2031 6.7969 11.2812 L11.2812 11.2812 L11.2812 7.5938 Q9.2031 7.5938 7.3594 7.125 ZM12.7188 7.5938 L12.7188 11.2812 L17.2031 11.2812 Q17.2031 9.2031 16.6406 7.125 Q14.7969 7.5938 12.7188 7.5938 ZM6.7969 12.7188 Q6.875 14.9531 7.3594 16.875 Q9.2812 16.4062 11.2812 16.4062 L11.2812 12.7188 L6.7969 12.7188 ZM12.7188 12.7188 L12.7188 16.4062 Q14.7969 16.4062 16.6406 16.875 Q17.125 14.9531 17.2031 12.7188 L12.7188 12.7188 ZM7.8438 18.3125 Q8.0781 19.0469 8.4062 19.5938 Q9.6875 21.9219 11.2812 22.4062 L11.2812 17.8438 Q9.4375 17.9219 7.8438 18.3125 ZM8 21.6875 Q7.5156 21.0469 7.1094 20.2812 Q6.7188 19.5156 6.4062 18.7188 Q5.4375 18.9531 4.5625 19.4375 Q6.0781 20.875 8 21.6875 ZM5.9219 17.2812 Q5.3594 15.0469 5.2812 12.7188 L1.5156 12.7188 Q1.7656 15.8438 3.5938 18.2344 Q4.6406 17.6875 5.9219 17.2812 ZM16 21.6875 Q17.9219 20.875 19.4375 19.4375 Q18.5625 18.9531 17.5938 18.7188 Q17.2812 19.5156 16.875 20.2812 Q16.4844 21.0469 16 21.6875 ZM12.7188 17.8438 L12.7188 22.4062 Q14.3125 21.9219 15.5938 19.5938 Q15.9219 18.9531 16.1562 18.3125 Q14.4844 17.9219 12.7188 17.8438 ZM18.0781 17.2812 Q19.3594 17.6875 20.4062 18.2344 Q22.2344 15.8438 22.4844 12.7188 L18.7188 12.7188 Q18.6406 15.0469 18.0781 17.2812 ZM22.4844 11.2812 Q22.2344 8.1562 20.4062 5.7656 Q19.3594 6.3125 18.0781 6.7188 Q18.6406 8.875 18.7188 11.2812 L22.4844 11.2812 ZM16.875 3.6875 Q17.2812 4.4844 17.5938 5.2812 Q18.5625 5.0469 19.4375 4.5625 Q17.9219 3.125 16 2.3125 Q16.4844 2.9531 16.875 3.6875 ZM16.1562 5.6875 Q15.9219 5.0469 15.5938 4.4062 Q14.3125 2.0781 12.7188 1.5938 L12.7188 6.1562 Q14.5625 6.0781 16.1562 5.6875 Z"
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .list-view .country-cell {
+.phone-number-field > .left-pane > .combo-box .list-view .country-cell {
     -fx-padding: 5px;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .list-view .country-cell.preferred {
+.phone-number-field > .left-pane > .combo-box .list-view .country-cell.preferred {
     -fx-font-weight: bold;
 }
 
-.phone-number-field > .left-pane > .globe-box-wrapper > .combo-box .list-view .country-cell .flag-wrapper {
+.phone-number-field > .left-pane > .combo-box .list-view .country-cell .flag-wrapper {
     -fx-padding: 1px;
     -fx-background-color: -fx-selection-bar-text;
 }

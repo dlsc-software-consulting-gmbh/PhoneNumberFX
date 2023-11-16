@@ -10,8 +10,10 @@ import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -68,12 +70,40 @@ public class PhoneNumberField extends CustomTextField {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getAvailableCountries().setAll(Country.values());
 
-        Region globeRegion = new Region();
-        globeRegion.getStyleClass().add("globe");
-
         ObservableList<Country> countries = FXCollections.observableArrayList();
 
-        ComboBox<Country> comboBox = new ComboBox<>();
+        ComboBox<Country> comboBox = new ComboBox<>() {
+            @Override
+            protected Skin<?> createDefaultSkin() {
+                return new ComboBoxListViewSkin<>(this) {
+
+                    final Region globeRegion = new Region();
+                    final StackPane globeButton = new StackPane(globeRegion);
+
+                    {
+                        globeRegion.getStyleClass().add("globe");
+                        globeButton.getStyleClass().add("globe-button");
+                        globeButton.setOnMouseClicked(evt -> getSkinnable().show());
+                        getChildren().add(globeButton);
+                    }
+
+                    @Override
+                    protected void layoutChildren(double x, double y, double w, double h) {
+                        super.layoutChildren(x, y, w, h);
+
+                        Node displayNode = getDisplayNode();
+                        Bounds bounds = displayNode.getBoundsInParent();
+
+                        // use same bounds for globe that were computed for the button cell
+                        this.globeButton.resizeRelocate(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
+                        this.globeButton.setVisible(getValue() == null);
+                        this.globeButton.setManaged(getValue() == null);
+                        this.globeButton.toFront();
+                    }
+                };
+            }
+        };
+
         comboBox.cellFactoryProperty().bind(countryCellFactoryProperty());
         comboBox.setItems(countries);
         comboBox.setMaxWidth(Double.MAX_VALUE);
@@ -82,21 +112,10 @@ public class PhoneNumberField extends CustomTextField {
         comboBox.disableProperty().bind(disableCountryDropdownProperty());
         comboBox.valueProperty().bindBidirectional(selectedCountryProperty());
 
-        StackPane globeButton = new StackPane(globeRegion);
-        globeButton.getStyleClass().add("globe-button");
-        globeButton.setOnMouseClicked(evt -> comboBox.show());
-        globeButton.visibleProperty().bind(selectedCountry.isNull());
-        globeButton.managedProperty().bind(selectedCountry.isNull());
-
         ButtonCell buttonCell = new ButtonCell();
-        buttonCell.visibleProperty().bind(selectedCountry.isNotNull());
-        buttonCell.managedProperty().bind(selectedCountry.isNotNull());
         comboBox.setButtonCell(buttonCell);
 
-        HBox globeBoxWrapper = new HBox(globeButton, comboBox);
-        globeBoxWrapper.getStyleClass().add("globe-box-wrapper");
-
-        setLeft(globeBoxWrapper);
+        setLeft(comboBox);
 
         phoneNumberUtil = PhoneNumberUtil.getInstance();
         resolver = new CountryResolver();
