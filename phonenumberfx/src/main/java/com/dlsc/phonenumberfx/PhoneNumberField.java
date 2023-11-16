@@ -75,7 +75,7 @@ public class PhoneNumberField extends CustomTextField {
 
         ComboBox<Country> comboBox = new ComboBox<>();
         comboBox.cellFactoryProperty().bind(countryCellFactoryProperty());
-        comboBox.setItems(getAvailableCountries());
+        comboBox.setItems(countries);
         comboBox.setMaxWidth(Double.MAX_VALUE);
         comboBox.setMaxHeight(Double.MAX_VALUE);
         comboBox.setFocusTraversable(false);
