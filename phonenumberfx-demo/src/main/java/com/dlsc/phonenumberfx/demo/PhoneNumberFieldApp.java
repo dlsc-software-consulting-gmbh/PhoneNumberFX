@@ -57,8 +57,6 @@ public class PhoneNumberFieldApp extends Application {
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();
-
-        ScenicView.show(stage.getScene());
     }
 
     private Node buildDefaultEmptySample() {
