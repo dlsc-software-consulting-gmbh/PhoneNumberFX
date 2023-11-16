@@ -18,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import org.scenicview.ScenicView;
 
 import java.util.function.Function;
 
@@ -56,6 +57,8 @@ public class PhoneNumberFieldApp extends Application {
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();
+
+        ScenicView.show(stage.getScene());
     }
 
     private Node buildDefaultEmptySample() {
