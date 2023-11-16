@@ -1,23 +1,23 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
+import com.dlsc.phonenumberfx.PhoneNumberField.Country;
 import javafx.application.Application;
-import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import org.controlsfx.control.CheckComboBox;
 
 import java.util.function.Function;
 
@@ -27,118 +27,151 @@ public class PhoneNumberFieldApp extends Application {
         if (c == null) {
             return null;
         }
-        PhoneNumberField.CountryCallingCode code = (PhoneNumberField.CountryCallingCode) c;
-        return "(" + code.phonePrefix() + ") " + code;
+        Country code = (Country) c;
+        return "(" + code.phonePrefix() + ")" + code;
     };
 
     @Override
     public void start(Stage stage) {
-        PhoneNumberField field = new PhoneNumberField();
-
-        VBox controls = new VBox(10);
-        addControl("Available Countries", availableCountriesSelector(field), controls);
-        addControl("Preferred Countries", preferredCountriesSelector(field), controls);
-        addControl("Disable Country", disableCountryCheck(field), controls);
-        addControl("", clearButton(field), controls);
-
-        VBox fields = new VBox(10);
-        addField(fields, "Country Code", field.countryCallingCodeProperty(), COUNTRY_CODE_CONVERTER);
-        addField(fields, "Raw PhoneNumber", field.rawPhoneNumberProperty());
-        addField(fields, "E164 PhoneNumber", field.e164PhoneNumberProperty());
-        addField(fields, "National PhoneNumber", field.nationalPhoneNumberProperty());
-
         VBox vBox = new VBox(20);
         vBox.setPadding(new Insets(20));
         vBox.setAlignment(Pos.CENTER);
-        vBox.getChildren().addAll(controls, new Separator(), field, new Separator(), fields);
+        vBox.getChildren().addAll(
+            buildDefaultEmptySample(),
+            new Separator(),
+            buildDefaultPrefilledSample(),
+            new Separator(),
+            buildCustomAvailableCountriesSample(),
+            new Separator(),
+            buildPreferredCountriesSample(),
+            new Separator(),
+            buildDisabledCountrySelectorSample()
+        );
 
-        stage.setTitle("PhoneNumberField2");
-        stage.setScene(new Scene(vBox, 500, 500));
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setContent(vBox);
+
+        stage.setTitle("PhoneNumberField");
+        stage.setScene(new Scene(scrollPane, 900, 800));
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();
     }
 
-    private Node availableCountriesSelector(PhoneNumberField field) {
-        CheckBox allCountries = new CheckBox("All");
+    private Node buildDefaultEmptySample() {
+        PhoneNumberField field = new PhoneNumberField();
 
-        CheckComboBox<PhoneNumberField.CountryCallingCode> comboBox = new CheckComboBox<>();
-        comboBox.getItems().addAll(PhoneNumberField.CountryCallingCode.Defaults.values());
-        comboBox.setPrefWidth(250);
-        comboBox.getCheckModel().getCheckedItems().addListener((InvalidationListener) observable -> field.getAvailableCountryCodes().setAll(comboBox.getCheckModel().getCheckedItems()));
-        comboBox.getCheckModel().checkAll();
+        String title = "Default Settings";
+        String description = "A control without any changes to its properties.";
 
-        allCountries.selectedProperty().addListener((obs, oldV, newV) -> {
-            if (newV) {
-                comboBox.getCheckModel().checkAll();
-                comboBox.setDisable(true);
-            } else {
-                comboBox.getCheckModel().clearChecks();
-                comboBox.setDisable(false);
-            }
-        });
-
-        allCountries.setSelected(true);
-
-        HBox box = new HBox(10);
-        box.getChildren().addAll(allCountries, comboBox);
-
-        return box;
+        return buildSample(title, description, field);
     }
 
-    private Node preferredCountriesSelector(PhoneNumberField view) {
-        CheckComboBox<PhoneNumberField.CountryCallingCode> comboBox = new CheckComboBox<>();
-        comboBox.getItems().addAll(PhoneNumberField.CountryCallingCode.Defaults.values());
-        comboBox.setPrefWidth(300);
-        Bindings.bindContent(view.getPreferredCountryCodes(), comboBox.getCheckModel().getCheckedItems());
-        return comboBox;
+    private Node buildDefaultPrefilledSample() {
+        PhoneNumberField field = new PhoneNumberField();
+        field.setRawPhoneNumber("+573003767182");
+
+        String title = "Initial Value";
+        String description = "A control with default settings and a value set through code.";
+
+        return buildSample(title, description, field);
     }
 
-    private Node disableCountryCheck(PhoneNumberField field) {
-        CheckBox check = new CheckBox();
-        check.selectedProperty().bindBidirectional(field.disableCountryCodeProperty());
-        return check;
+    private Node buildCustomAvailableCountriesSample() {
+        PhoneNumberField field = new PhoneNumberField();
+        field.getAvailableCountries().setAll(
+            Country.COLOMBIA,
+            Country.GERMANY,
+            Country.UNITED_STATES,
+            Country.UNITED_KINGDOM,
+            Country.SWITZERLAND);
+
+        String title = "Available Countries (Customized)";
+        String description = "A control with modified list of available countries.";
+
+        return buildSample(title, description, field);
     }
 
-    private Node clearButton(PhoneNumberField field) {
-        Button clear = new Button("Clear all");
-        clear.setOnAction(evt -> field.setRawPhoneNumber(null));
-        return clear;
+    private Node buildPreferredCountriesSample() {
+        PhoneNumberField field = new PhoneNumberField();
+
+        field.getPreferredCountries().setAll(
+            Country.SWITZERLAND,
+            Country.GERMANY,
+            Country.UNITED_KINGDOM);
+
+        String title = "Preferred Countries";
+        String description = "Preferred countries all shown at the top of the list always.";
+
+        return buildSample(title, description, field);
     }
 
-    private void addControl(String name, Node control, VBox controls) {
-        Label label = new Label(name);
-        label.setPrefWidth(150);
-        HBox hBox = new HBox();
+    private Node buildDisabledCountrySelectorSample() {
+        PhoneNumberField field = new PhoneNumberField();
+        field.setSelectedCountry(Country.GERMANY);
+        field.setDisableCountryDropdown(true);
+
+        String title = "Disabled Country Selector";
+        String description = "Disables the country selector button so it forces the control to keep always the same country.";
+
+        return buildSample(title, description, field);
+    }
+
+    private Node buildSample(String title, String description, PhoneNumberField field) {
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 1.4em;");
+
+        Label descriptionLabel = new Label(description);
+        descriptionLabel.setWrapText(true);
+
+        VBox leftBox = new VBox(20);
+        leftBox.setAlignment(Pos.CENTER_LEFT);
+        leftBox.getChildren().addAll(titleLabel, descriptionLabel, field);
+        leftBox.setPrefWidth(400);
+
+        ColumnConstraints column1 = new ColumnConstraints();
+        column1.setPercentWidth(35);
+
+        ColumnConstraints column2 = new ColumnConstraints();
+        column2.setPercentWidth(65);
+
+        GridPane rightBox = new GridPane();
+        rightBox.setHgap(10);
+        rightBox.setVgap(10);
+        rightBox.getColumnConstraints().addAll(column1, column2);
+        rightBox.setPrefWidth(400);
+
+        addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
+        addField(rightBox, "Raw Number", field.rawPhoneNumberProperty());
+        addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
+        addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
+
+        HBox hBox = new HBox(30);
+        hBox.getChildren().addAll(leftBox, rightBox);
         hBox.setAlignment(Pos.CENTER_LEFT);
-        hBox.getChildren().addAll(label, control);
-        HBox.setHgrow(label, Priority.NEVER);
-        HBox.setHgrow(control, Priority.ALWAYS);
-        controls.getChildren().add(hBox);
+        HBox.setHgrow(leftBox, Priority.NEVER);
+        HBox.setHgrow(rightBox, Priority.ALWAYS);
+
+        return hBox;
     }
 
-    private void addField(VBox fields, String label, ObservableValue property) {
-        addField(fields, label, property, null);
+    private void addField(GridPane pane, String name, ObservableValue<?> value) {
+        addField(pane, name, value, null);
     }
 
-    private void addField(VBox fields, String label, ObservableValue property, Function<Object, String> converter) {
-        Label value = new Label();
+    private void addField(GridPane pane, String name, ObservableValue<?> value, Function<Object, String> converter) {
+        Label valueLbl = new Label();
         if (converter == null) {
-            value.textProperty().bind(Bindings.convert(property));
+            valueLbl.textProperty().bind(Bindings.convert(value));
         } else {
-            value.textProperty().bind(Bindings.createStringBinding(() -> converter.apply(property.getValue()), property));
+            valueLbl.textProperty().bind(Bindings.createStringBinding(() -> converter.apply(value.getValue()), value));
         }
 
-        Label myLabel = new Label(label + ": ");
-        myLabel.setPrefWidth(150);
+        valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
 
-        HBox hBox = new HBox();
-        hBox.setAlignment(Pos.CENTER_LEFT);
-        hBox.getChildren().addAll(myLabel, value);
-        HBox.setHgrow(myLabel, Priority.NEVER);
-        HBox.setHgrow(value, Priority.ALWAYS);
-
-        fields.getChildren().add(hBox);
+        int row = pane.getRowCount();
+        pane.add(new Label(name + ":"), 0, row);
+        pane.add(valueLbl, 1, row);
     }
 
     public static void main(String[] args) {
