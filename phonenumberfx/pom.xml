@@ -7,13 +7,13 @@
     <parent>
         <groupId>com.dlsc.phonenumberfx</groupId>
         <artifactId>parent</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>com.dlsc.phonenumberfx</groupId>
     <artifactId>phonenumberfx</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
 
     <name>PhoneNumberFX</name>
