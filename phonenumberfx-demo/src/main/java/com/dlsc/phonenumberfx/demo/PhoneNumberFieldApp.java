@@ -18,7 +18,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import org.scenicview.ScenicView;
 
 import java.util.function.Function;
 
@@ -46,7 +45,9 @@ public class PhoneNumberFieldApp extends Application {
             new Separator(),
             buildPreferredCountriesSample(),
             new Separator(),
-            buildDisabledCountrySelectorSample()
+            buildDisabledCountrySelectorSample(),
+            new Separator(),
+            buildCountryCodeVisibleSample()
         );
 
         ScrollPane scrollPane = new ScrollPane();
@@ -114,6 +115,16 @@ public class PhoneNumberFieldApp extends Application {
 
         String title = "Disabled Country Selector";
         String description = "Disables the country selector button so it forces the control to keep always the same country.";
+
+        return buildSample(title, description, field);
+    }
+
+    private Node buildCountryCodeVisibleSample() {
+        PhoneNumberField field = new PhoneNumberField();
+        field.setCountryCodeVisible(true);
+
+        String title = "Country Code Visible";
+        String description = "Makes the country code always visible in the text field.";
 
         return buildSample(title, description, field);
     }

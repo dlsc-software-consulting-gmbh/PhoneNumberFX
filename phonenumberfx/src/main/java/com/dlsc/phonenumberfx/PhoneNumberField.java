@@ -5,26 +5,48 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.*;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
-import javafx.scene.control.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Skin;
+import javafx.scene.control.TextFormatter;
 import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
 import org.controlsfx.control.textfield.CustomTextField;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.UnaryOperator;
 
 /**
@@ -405,6 +427,24 @@ public class PhoneNumberField extends CustomTextField {
         this.valid.set(valid);
     }
 
+    private final BooleanProperty countryCodeVisible = new SimpleBooleanProperty(this, "countryCodeVisible");
+
+    /**
+     * Allows to keep the country code visible in the text field.  When it is send to {@code false} the country code
+     * is never part of the text field.
+     */
+    public final BooleanProperty countryCodeVisibleProperty() {
+        return countryCodeVisible;
+    }
+
+    public final boolean isCountryCodeVisible() {
+        return countryCodeVisibleProperty().get();
+    }
+
+    public final void setCountryCodeVisible(boolean countryCodeVisible) {
+        countryCodeVisibleProperty().set(countryCodeVisible);
+    }
+
     /**
      * All countries supported by the control.
      */
@@ -747,9 +787,9 @@ public class PhoneNumberField extends CustomTextField {
                     if (country == null) {
                         resolveCountry(change);
                     } else {
+                        String countryPrefix = country.countryCodePrefix();
                         String nationalNumber = undoFormat(change.getControlNewText());
-                        String newPhoneNumber = country.countryCodePrefix() + nationalNumber;
-                        setRawPhoneNumber(newPhoneNumber);
+                        setRawPhoneNumber(countryPrefix + nationalNumber);
                     }
                 }
 
@@ -765,10 +805,12 @@ public class PhoneNumberField extends CustomTextField {
             if (country != null) {
                 setSelectedCountry(country);
                 PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
-                change.setText("");
-                change.setCaretPosition(0);
-                change.setAnchor(0);
-                change.setRange(0, 0);
+                if (!isCountryCodeVisible()) {
+                    change.setText("");
+                    change.setCaretPosition(0);
+                    change.setAnchor(0);
+                    change.setRange(0, 0);
+                }
             }
         }
 
@@ -783,6 +825,10 @@ public class PhoneNumberField extends CustomTextField {
 
             for (char c : newRawPhoneNumber.toCharArray()) {
                 formattedNumber = formatter.inputDigit(c);
+            }
+
+            if (isCountryCodeVisible()) {
+                return formattedNumber;
             }
 
             return formattedNumber.substring(country.countryCodePrefix().length()).trim();
