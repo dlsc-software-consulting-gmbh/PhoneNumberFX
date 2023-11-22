@@ -1,18 +1,40 @@
 package com.dlsc.phonenumberfx;
 
-import com.dlsc.phonenumberfx.skins.PhoneNumberFieldSkin;
 import com.google.i18n.phonenumbers.AsYouTypeFormatter;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import javafx.application.Platform;
-import javafx.beans.property.*;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
-import javafx.scene.control.*;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Skin;
+import javafx.scene.control.TextFormatter;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
+import org.controlsfx.control.textfield.CustomTextField;
 
 import java.util.*;
 import java.util.function.UnaryOperator;
@@ -22,12 +44,26 @@ import java.util.function.UnaryOperator;
  * including the country calling code and delivered by the {@link #rawPhoneNumberProperty() phone number} property.
  * The control supports a list of {@link #getAvailableCountries() available countries}.
  */
-public class PhoneNumberField extends Control {
+public class PhoneNumberField extends CustomTextField {
+
+    private static final Map<Country, Image> FLAG_IMAGES = new HashMap<>();
+
+    static {
+        for (Country country : Country.values()) {
+            FLAG_IMAGES.put(country, new Image(Objects.requireNonNull(PhoneNumberField.class.getResource("country-flags/" + country.iso2Code().toLowerCase() + ".png")).toExternalForm()));
+        }
+    }
+
+    private static final Comparator<Country> NAME_SORT_ASC = (c1, c2) -> {
+        String c1Name = new Locale("en", c1.iso2Code()).getDisplayCountry();
+        String c2Name = new Locale("en", c2.iso2Code()).getDisplayCountry();
+        return c1Name.compareTo(c2Name);
+    };
 
     /**
      * Pseudo class used to visualize the validity of the control.
      */
-    public static final PseudoClass VALID_PSEUDO_CLASS = PseudoClass.getPseudoClass("valid");
+    public static final PseudoClass INVALID_PSEUDO_CLASS = PseudoClass.getPseudoClass("invalid");
 
     /**
      * Default style class for css styling.
@@ -36,7 +72,6 @@ public class PhoneNumberField extends Control {
 
     private final CountryResolver resolver;
     private final PhoneNumberFormatter formatter;
-    private final TextField textField;
     private final PhoneNumberUtil phoneNumberUtil;
 
     /**
@@ -47,13 +82,59 @@ public class PhoneNumberField extends Control {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getAvailableCountries().setAll(Country.values());
 
+        ObservableList<Country> countries = FXCollections.observableArrayList();
+
+        ComboBox<Country> comboBox = new ComboBox<>() {
+            @Override
+            protected Skin<?> createDefaultSkin() {
+                return new ComboBoxListViewSkin<>(this) {
+
+                    final Region globeRegion = new Region();
+                    final StackPane globeButton = new StackPane(globeRegion);
+
+                    {
+                        globeRegion.getStyleClass().add("globe");
+                        globeButton.getStyleClass().add("globe-button");
+                        globeButton.setOnMouseClicked(evt -> getSkinnable().show());
+                        getChildren().add(globeButton);
+                    }
+
+                    @Override
+                    protected void layoutChildren(double x, double y, double w, double h) {
+                        super.layoutChildren(x, y, w, h);
+
+                        Node displayNode = getDisplayNode();
+                        Bounds bounds = displayNode.getBoundsInParent();
+
+                        // use same bounds for globe that were computed for the button cell
+                        this.globeButton.resizeRelocate(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
+                        this.globeButton.setVisible(getValue() == null);
+                        this.globeButton.setManaged(getValue() == null);
+                        this.globeButton.toFront();
+                    }
+                };
+            }
+        };
+
+        comboBox.cellFactoryProperty().bind(countryCellFactoryProperty());
+        comboBox.setItems(countries);
+        comboBox.setMaxWidth(Double.MAX_VALUE);
+        comboBox.setMaxHeight(Double.MAX_VALUE);
+        comboBox.setFocusTraversable(false);
+        comboBox.disableProperty().bind(disableCountryDropdownProperty());
+        comboBox.valueProperty().bindBidirectional(selectedCountryProperty());
+
+        ButtonCell buttonCell = new ButtonCell();
+        comboBox.setButtonCell(buttonCell);
+
+        setLeft(comboBox);
+
         phoneNumberUtil = PhoneNumberUtil.getInstance();
-        textField = new TextField();
         resolver = new CountryResolver();
-        formatter = new PhoneNumberFormatter(textField);
+        formatter = new PhoneNumberFormatter();
 
         rawPhoneNumberProperty().addListener((obs, oldV, newV) -> Platform.runLater(() -> formatter.setFormattedNationalNumber(getRawPhoneNumber())));
-        validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(VALID_PSEUDO_CLASS, !newV));
+        validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newV));
 
         countryCellFactory.addListener((obs, oldValue, newValue) -> {
             if (newValue == null) {
@@ -61,6 +142,38 @@ public class PhoneNumberField extends Control {
                 throw new IllegalArgumentException("country cell factory can not be null");
             }
         });
+
+        Runnable callingCodesUpdater = () -> {
+            Set<Country> temp1 = new TreeSet<>(NAME_SORT_ASC);
+            Set<Country> temp2 = new TreeSet<>(NAME_SORT_ASC);
+
+            getAvailableCountries().forEach(code -> {
+                if (!getPreferredCountries().contains(code)) {
+                    temp2.add(code);
+                }
+            });
+
+            getPreferredCountries().forEach(code -> {
+                if (getAvailableCountries().contains(code)) {
+                    temp1.add(code);
+                }
+            });
+
+            List<Country> temp = new ArrayList<>();
+            temp.addAll(temp1);
+            temp.addAll(temp2);
+            countries.setAll(temp);
+
+            if (getSelectedCountry() != null && !temp.contains(getSelectedCountry())) {
+                setRawPhoneNumber(null); // Clear up the value in case the country code is not available anymore
+            }
+        };
+
+        InvalidationListener listener = obs -> callingCodesUpdater.run();
+        getAvailableCountries().addListener(listener);
+        getPreferredCountries().addListener(listener);
+        countryCellFactoryProperty().addListener(listener);
+        callingCodesUpdater.run();
     }
 
     @Override
@@ -69,17 +182,26 @@ public class PhoneNumberField extends Control {
     }
 
     @Override
-    protected Skin<?> createDefaultSkin() {
-        return new PhoneNumberFieldSkin(this);
+    public void clear() {
+        super.clear();
+        setRawPhoneNumber(null);
     }
 
-    /**
-     * Returns the text field used as the editor for this control.
-     *
-     * @return the text field / editor
-     */
-    public final TextField getEditor() {
-        return textField;
+    private class ButtonCell extends ListCell<Country> {
+
+        public ButtonCell() {
+            getStyleClass().add("graphics");
+            setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        }
+
+        @Override
+        protected void updateItem(Country country, boolean empty) {
+            super.updateItem(country, empty);
+
+            if (!empty && country != null) {
+                ButtonCell.this.setGraphic(getCountryGraphic(country));
+            }
+        }
     }
 
     // VALUES
@@ -255,7 +377,7 @@ public class PhoneNumberField extends Control {
         disableCountryDropdownProperty().set(disableCountryDropdown);
     }
 
-    private final ObjectProperty<Callback<ListView<Country>, ListCell<Country>>> countryCellFactory = new SimpleObjectProperty<>(this, "countryCellFactory");
+    private final ObjectProperty<Callback<ListView<Country>, ListCell<Country>>> countryCellFactory = new SimpleObjectProperty<>(this, "countryCellFactory", listView -> new CountryCell());
 
     /**
      * Factory that allows to replace the list cells used to graphically represent each country.
@@ -276,7 +398,7 @@ public class PhoneNumberField extends Control {
         @Override
         public void set(boolean newValid) {
             super.set(newValid);
-            pseudoClassStateChanged(VALID_PSEUDO_CLASS, !newValid);
+            pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newValid);
         }
     };
 
@@ -299,7 +421,6 @@ public class PhoneNumberField extends Control {
      * All countries supported by the control.
      */
     public enum Country {
-
         AFGHANISTAN(93, "AF"),
         ALAND_ISLANDS(358, "AX", 18),
         ALBANIA(355, "AL"),
@@ -589,11 +710,11 @@ public class PhoneNumberField extends Control {
      */
     private final class PhoneNumberFormatter implements UnaryOperator<TextFormatter.Change> {
 
-        private PhoneNumberFormatter(TextField textField) {
-            textField.setTextFormatter(new TextFormatter<>(this));
-            textField.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+        private PhoneNumberFormatter() {
+            PhoneNumberField.this.setTextFormatter(new TextFormatter<>(this));
+            PhoneNumberField.this.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
                 if (e.getCode() == KeyCode.BACK_SPACE
-                        && (textField.getText() == null || textField.getText().isEmpty())
+                        && (PhoneNumberField.this.getText() == null || PhoneNumberField.this.getText().isEmpty())
                         && getSelectedCountry() != null
                         && !getDisableCountryDropdown()) {
 
@@ -655,7 +776,7 @@ public class PhoneNumberField extends Control {
             Country country = resolver.call(change.getControlNewText());
             if (country != null) {
                 setSelectedCountry(country);
-                textField.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
+                PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
                 change.setText("");
                 change.setCaretPosition(0);
                 change.setAnchor(0);
@@ -701,8 +822,8 @@ public class PhoneNumberField extends Control {
             try {
                 selfUpdate = true;
                 String formattedPhoneNumber = doFormat(newRawPhoneNumber);
-                textField.setText(formattedPhoneNumber);
-                textField.positionCaret(formattedPhoneNumber.length());
+                PhoneNumberField.this.setText(formattedPhoneNumber);
+                PhoneNumberField.this.positionCaret(formattedPhoneNumber.length());
             } finally {
                 selfUpdate = false;
             }
@@ -783,5 +904,63 @@ public class PhoneNumberField extends Control {
             }
             return code;
         }
+    }
+
+    private class CountryCell extends ListCell<Country> {
+
+        private CountryCell() {
+            getStyleClass().add("country-cell");
+        }
+
+        @Override
+        protected void updateItem(Country country, boolean empty) {
+            super.updateItem(country, empty);
+
+            int index = -1;
+
+            if (country != null && !empty) {
+                setText(new Locale("en", country.iso2Code()).getDisplayCountry());
+                setGraphic(getCountryGraphic(country));
+                index = getPreferredCountries().indexOf(country);
+            } else {
+                setText(null);
+                setGraphic(null);
+            }
+
+            if (index >= 0) {
+                getStyleClass().add("preferred");
+                if (index == getPreferredCountries().size() - 1) {
+                    getStyleClass().add("last");
+                } else {
+                    getStyleClass().remove("last");
+                }
+            } else {
+                getStyleClass().remove("preferred");
+                getStyleClass().remove("last");
+            }
+        }
+    }
+
+    /**
+     * Subclasses of this skin can easily override this method to simply return different
+     * flags / globe.
+     *
+     * @param country the country code
+     * @return a node representing the country (normally the country's flag)
+     */
+    protected Node getCountryGraphic(Country country) {
+        Objects.requireNonNull(country, "country can not be null");
+        ImageView imageView = new ImageView();
+        imageView.setFitHeight(20);
+        imageView.setFitWidth(20);
+        imageView.setPreserveRatio(true);
+        imageView.getStyleClass().add("flag-image-view");
+        Optional.ofNullable(FLAG_IMAGES.get(country)).ifPresent(imageView::setImage);
+
+        StackPane wrapper = new StackPane(imageView);
+        wrapper.getStyleClass().add("flag-wrapper");
+        wrapper.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        return wrapper;
     }
 }
