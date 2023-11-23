@@ -675,6 +675,15 @@ public class PhoneNumberField extends CustomTextField {
             this.areaCodes = Optional.ofNullable(areaCodes).orElse(new int[0]);
         }
 
+        public static Country ofISO2(String country) {
+            for (Country c : values()) {
+                if (c.iso2Code.equals(country)) {
+                    return c;
+                }
+            }
+            return null;
+        }
+
         public int countryCode() {
             return countryCode;
         }
@@ -776,11 +785,14 @@ public class PhoneNumberField extends CustomTextField {
             Country country = resolver.call(change.getControlNewText());
             if (country != null) {
                 setSelectedCountry(country);
-                PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
-                change.setText("");
-                change.setCaretPosition(0);
-                change.setAnchor(0);
-                change.setRange(0, 0);
+
+                Platform.runLater(() -> {
+                    PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
+                    change.setText("");
+                    change.setCaretPosition(0);
+                    change.setAnchor(0);
+                    change.setRange(0, 0);
+                });
             }
         }
 

@@ -2,6 +2,7 @@ package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
 import com.dlsc.phonenumberfx.PhoneNumberField.Country;
+import com.dlsc.phonenumberfx.PhoneNumberLabel;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -18,7 +19,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import org.scenicview.ScenicView;
 
 import java.util.function.Function;
 
@@ -142,10 +142,14 @@ public class PhoneNumberFieldApp extends Application {
         rightBox.getColumnConstraints().addAll(column1, column2);
         rightBox.setPrefWidth(400);
 
+        PhoneNumberLabel phoneNumberLabel = new PhoneNumberLabel();
+        phoneNumberLabel.rawPhoneNumberProperty().bind(field.rawPhoneNumberProperty());
+
         addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
         addField(rightBox, "Raw Number", field.rawPhoneNumberProperty());
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
+        addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
 
         HBox hBox = new HBox(30);
         hBox.getChildren().addAll(leftBox, rightBox);
@@ -168,8 +172,12 @@ public class PhoneNumberFieldApp extends Application {
             valueLbl.textProperty().bind(Bindings.createStringBinding(() -> converter.apply(value.getValue()), value));
         }
 
+        addField(pane, name, valueLbl);
         valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+    }
 
+    private void addField(GridPane pane, String name, Label valueLbl) {
+        valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
         int row = pane.getRowCount();
         pane.add(new Label(name + ":"), 0, row);
         pane.add(valueLbl, 1, row);
