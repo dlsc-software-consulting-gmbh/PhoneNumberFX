@@ -3,7 +3,6 @@ package com.dlsc.phonenumberfx.demo;
 import com.dlsc.phonenumberfx.PhoneNumberField;
 import com.dlsc.phonenumberfx.PhoneNumberField.Country;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.dlsc.phonenumberfx.PhoneNumberLabel;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -13,7 +12,6 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -23,7 +21,7 @@ import javafx.stage.Stage;
 
 import java.util.function.Function;
 
-public class PhoneNumberFieldApp extends Application {
+public class SinglePhoneNumberFieldApp extends Application {
 
     private static final Function<Object, String> COUNTRY_CODE_CONVERTER = c -> {
         if (c == null) {
@@ -39,17 +37,7 @@ public class PhoneNumberFieldApp extends Application {
         vBox.setPadding(new Insets(20));
         vBox.setAlignment(Pos.CENTER);
         vBox.getChildren().addAll(
-            buildDefaultEmptySample(),
-            new Separator(),
-            buildDefaultPrefilledSample(),
-            new Separator(),
-            buildCustomAvailableCountriesSample(),
-            new Separator(),
-            buildPreferredCountriesSample(),
-            new Separator(),
-            buildDisabledCountrySelectorSample(),
-            new Separator(),
-            buildExpectedPhoneNumberTypeSample()
+            buildDefaultEmptySample()
         );
 
         ScrollPane scrollPane = new ScrollPane();
@@ -64,71 +52,11 @@ public class PhoneNumberFieldApp extends Application {
 
     private Node buildDefaultEmptySample() {
         PhoneNumberField field = new PhoneNumberField();
-
-        String title = "Default Settings";
-        String description = "A control without any changes to its properties.";
-
-        return buildSample(title, description, field);
-    }
-
-    private Node buildDefaultPrefilledSample() {
-        PhoneNumberField field = new PhoneNumberField();
-        field.setRawPhoneNumber("+573003767182");
-
-        String title = "Initial Value";
-        String description = "A control with default settings and a value set through code.";
-
-        return buildSample(title, description, field);
-    }
-
-    private Node buildCustomAvailableCountriesSample() {
-        PhoneNumberField field = new PhoneNumberField();
-        field.getAvailableCountries().setAll(
-            Country.COLOMBIA,
-            Country.GERMANY,
-            Country.UNITED_STATES,
-            Country.UNITED_KINGDOM,
-            Country.SWITZERLAND);
-
-        String title = "Available Countries (Customized)";
-        String description = "A control with modified list of available countries.";
-
-        return buildSample(title, description, field);
-    }
-
-    private Node buildPreferredCountriesSample() {
-        PhoneNumberField field = new PhoneNumberField();
-
-        field.getPreferredCountries().setAll(
-            Country.SWITZERLAND,
-            Country.GERMANY,
-            Country.UNITED_KINGDOM);
-
-        String title = "Preferred Countries";
-        String description = "Preferred countries all shown at the top of the list always.";
-
-        return buildSample(title, description, field);
-    }
-
-    private Node buildDisabledCountrySelectorSample() {
-        PhoneNumberField field = new PhoneNumberField();
-        field.setSelectedCountry(Country.GERMANY);
-        field.setDisableCountryDropdown(true);
-        field.setExpectedPhoneNumberType(PhoneNumberUtil.PhoneNumberType.PERSONAL_NUMBER);
-
-        String title = "Disabled Country Selector";
-        String description = "Disables the country selector button so it forces the control to keep always the same country.";
-
-        return buildSample(title, description, field);
-    }
-
-    private Node buildExpectedPhoneNumberTypeSample() {
-        PhoneNumberField field = new PhoneNumberField();
         field.setExpectedPhoneNumberType(PhoneNumberUtil.PhoneNumberType.MOBILE);
         field.setSelectedCountry(Country.COLOMBIA);
 
-        String title = "Fixed Phone Number Type (MOBILE)";
-        String description = "Establish an expected phone number type, performs validations against the type and shows an example of the phone number.";
+        String title = "Phone Number Field";
+        String description = "General purpose phone number field.";
 
         return buildSample(title, description, field);
     }
@@ -157,14 +85,10 @@ public class PhoneNumberFieldApp extends Application {
         rightBox.getColumnConstraints().addAll(column1, column2);
         rightBox.setPrefWidth(400);
 
-        PhoneNumberLabel phoneNumberLabel = new PhoneNumberLabel();
-        phoneNumberLabel.rawPhoneNumberProperty().bind(field.rawPhoneNumberProperty());
-
         addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
         addField(rightBox, "Raw Number", field.rawPhoneNumberProperty());
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
-        addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
 
         HBox hBox = new HBox(30);
         hBox.getChildren().addAll(leftBox, rightBox);
@@ -187,12 +111,8 @@ public class PhoneNumberFieldApp extends Application {
             valueLbl.textProperty().bind(Bindings.createStringBinding(() -> converter.apply(value.getValue()), value));
         }
 
-        addField(pane, name, valueLbl);
         valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
-    }
 
-    private void addField(GridPane pane, String name, Label valueLbl) {
-        valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
         int row = pane.getRowCount();
         pane.add(new Label(name + ":"), 0, row);
         pane.add(valueLbl, 1, row);
