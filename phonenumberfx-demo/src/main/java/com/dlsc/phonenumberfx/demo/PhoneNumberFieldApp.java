@@ -165,6 +165,7 @@ public class PhoneNumberFieldApp extends Application {
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
         addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
+        addField(rightBox, "Valid", field.validProperty());
 
         HBox hBox = new HBox(30);
         hBox.getChildren().addAll(leftBox, rightBox);

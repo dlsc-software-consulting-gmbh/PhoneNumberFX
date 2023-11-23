@@ -42,8 +42,10 @@ public class PhoneNumberLabel extends Label {
 
         rawPhoneNumber.addListener((obs, oldRawPhoneNumber, newRawPhoneNumber) -> {
             try {
+                Phonenumber.PhoneNumber phoneNumber;
+
                 if (getCountry() != null) {
-                    Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, getCountry().iso2Code());
+                    phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, getCountry().iso2Code());
 
                     e164PhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164));
                     nationalPhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
@@ -63,15 +65,16 @@ public class PhoneNumberLabel extends Label {
                             setText(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
                             break;
                     }
-                    setTooltip(new Tooltip(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
                 } else {
+                    phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, Country.UNITED_STATES.iso2Code()); // well, USA is prefix +1 :-)
                     setText(getRawPhoneNumber());
-                    setTooltip(new Tooltip(getRawPhoneNumber()));
                     e164PhoneNumber.set("");
                     nationalPhoneNumber.set("");
                 }
 
-                setValid(true);
+                setTooltip(new Tooltip(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
+                setValid(phoneNumberUtil.isValidNumber(phoneNumber));
+
             } catch (NumberParseException e) {
                 if (newRawPhoneNumber.startsWith(getCountry().countryCodePrefix())) {
                     newRawPhoneNumber = newRawPhoneNumber.substring(getCountry().countryCodePrefix().length());
@@ -83,9 +86,12 @@ public class PhoneNumberLabel extends Label {
             }
         });
 
-        System.out.println("default country: " + getCountry());
+        validProperty().addListener(it -> updateValidPseudoState());
+        updateValidPseudoState();
+    }
 
-        validProperty().addListener(it -> System.out.println("valid: " + isValid()));
+    private void updateValidPseudoState() {
+        pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !isValid());
     }
 
     public enum Strategy {
@@ -168,15 +174,7 @@ public class PhoneNumberLabel extends Label {
         this.e164PhoneNumber.set(e164PhoneNumber);
     }
 
-    // SETTINGS
-
-    private final ReadOnlyBooleanWrapper valid = new ReadOnlyBooleanWrapper(this, "valid") {
-        @Override
-        public void set(boolean newValid) {
-            super.set(newValid);
-            pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newValid);
-        }
-    };
+    private final ReadOnlyBooleanWrapper valid = new ReadOnlyBooleanWrapper(this, "valid");
 
     /**
      * Read-only property that indicates whether the phone number is valid or not.
