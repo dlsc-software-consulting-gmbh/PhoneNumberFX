@@ -9,6 +9,8 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -143,6 +145,35 @@ public class PhoneNumberField extends CustomTextField {
         resolver = new CountryResolver();
         formatter = new PhoneNumberFormatter();
 
+        Runnable sampleUpdater = () -> {
+            if (getSelectedCountry() == null) {
+                setPromptText(null);
+            } else {
+                Phonenumber.PhoneNumber sampleNumber;
+                if (getExpectedPhoneNumberType() == null) {
+                    sampleNumber = phoneNumberUtil.getExampleNumber(getSelectedCountry().iso2Code());
+                } else {
+                    sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
+                }
+                setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
+            }
+        };
+
+        expectedPhoneNumberTypeProperty().addListener(obs -> sampleUpdater.run());
+        selectedCountryProperty().addListener(obs -> sampleUpdater.run());
+
+        phoneNumberProperty().addListener((obs, oldV, newV) -> {
+            if (newV == null) {
+                setE164PhoneNumber(null);
+                setNationalPhoneNumber(null);
+                setValid(true);
+            } else {
+                setE164PhoneNumber(phoneNumberUtil.format(newV, PhoneNumberUtil.PhoneNumberFormat.E164));
+                setNationalPhoneNumber(phoneNumberUtil.format(newV, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
+                setValid(phoneNumberUtil.isValidNumber(newV) && isExpectedTypeMatch(newV));
+            }
+        });
+
         rawPhoneNumberProperty().addListener((obs, oldV, newV) -> Platform.runLater(() -> formatter.setFormattedNationalNumber(getRawPhoneNumber())));
         validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newV));
 
@@ -239,21 +270,15 @@ public class PhoneNumberField extends CustomTextField {
                     formatter.setFormattedNationalNumber(newRawPhoneNumber);
 
                     try {
-                        Phonenumber.PhoneNumber number = phoneNumberUtil.parse(getRawPhoneNumber(), country.iso2Code());
-                        setValid(phoneNumberUtil.isValidNumber(number));
-                        setE164PhoneNumber(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.E164));
-                        setNationalPhoneNumber(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
+                        Phonenumber.PhoneNumber number = phoneNumberUtil.parse(newRawPhoneNumber, country.iso2Code());
+                        setPhoneNumber(number);
                     } catch (Exception e) {
-                        setValid(true);
-                        setE164PhoneNumber(null);
-                        setNationalPhoneNumber(null);
+                        setPhoneNumber(null);
                     }
                 } else {
                     setSelectedCountry(null);
                     formatter.setFormattedNationalNumber(null);
-                    setValid(true);
-                    setE164PhoneNumber(null);
-                    setNationalPhoneNumber(null);
+                    setPhoneNumber(null);
                 }
 
             } finally {
@@ -346,6 +371,20 @@ public class PhoneNumberField extends CustomTextField {
         this.e164PhoneNumber.set(e164PhoneNumber);
     }
 
+    private final ReadOnlyObjectWrapper<Phonenumber.PhoneNumber> phoneNumber = new ReadOnlyObjectWrapper<>(this, "phoneNumber");
+
+    public final ReadOnlyObjectProperty<Phonenumber.PhoneNumber> phoneNumberProperty() {
+        return phoneNumber.getReadOnlyProperty();
+    }
+
+    public final Phonenumber.PhoneNumber getPhoneNumber() {
+        return phoneNumber.get();
+    }
+
+    private void setPhoneNumber(Phonenumber.PhoneNumber phoneNumber) {
+        this.phoneNumber.set(phoneNumber);
+    }
+
     // SETTINGS
 
     private final ObservableList<Country> availableCountries = FXCollections.observableArrayList();
@@ -425,6 +464,30 @@ public class PhoneNumberField extends CustomTextField {
 
     private void setValid(boolean valid) {
         this.valid.set(valid);
+    }
+
+    private final ObjectProperty<PhoneNumberUtil.PhoneNumberType> expectedPhoneNumberType = new SimpleObjectProperty<>(this, "expectedPhoneNumberType");
+
+    /**
+     * @return Property that indicates the expected phone number type.  This plays a role in the validation and
+     * also showing an example of the phone number format in the text field after selecting the country.
+     */
+    public final ObjectProperty<PhoneNumberUtil.PhoneNumberType> expectedPhoneNumberTypeProperty() {
+        return expectedPhoneNumberType;
+    }
+
+    public final PhoneNumberUtil.PhoneNumberType getExpectedPhoneNumberType() {
+        return expectedPhoneNumberTypeProperty().get();
+    }
+
+    public final void setExpectedPhoneNumberType(PhoneNumberUtil.PhoneNumberType expectedType) {
+        expectedPhoneNumberTypeProperty().set(expectedType);
+    }
+
+    private boolean isExpectedTypeMatch(Phonenumber.PhoneNumber number) {
+        return Optional.ofNullable(getExpectedPhoneNumberType())
+            .map(t -> t == phoneNumberUtil.getNumberType(number))
+            .orElse(true);
     }
 
     private final BooleanProperty countryCodeVisible = new SimpleBooleanProperty(this, "countryCodeVisible");
@@ -703,6 +766,15 @@ public class PhoneNumberField extends CustomTextField {
             this.areaCodes = Optional.ofNullable(areaCodes).orElse(new int[0]);
         }
 
+        public static Country ofISO2(String country) {
+            for (Country c : values()) {
+                if (c.iso2Code.equals(country)) {
+                    return c;
+                }
+            }
+            return null;
+        }
+
         public int countryCode() {
             return countryCode;
         }
@@ -787,9 +859,9 @@ public class PhoneNumberField extends CustomTextField {
                     if (country == null) {
                         resolveCountry(change);
                     } else {
-                        String countryPrefix = country.countryCodePrefix();
                         String nationalNumber = undoFormat(change.getControlNewText());
-                        setRawPhoneNumber(countryPrefix + nationalNumber);
+                        String newPhoneNumber = country.countryCodePrefix() + nationalNumber;
+                        setRawPhoneNumber(newPhoneNumber);
                     }
                 }
 
@@ -804,31 +876,27 @@ public class PhoneNumberField extends CustomTextField {
             Country country = resolver.call(change.getControlNewText());
             if (country != null) {
                 setSelectedCountry(country);
-                PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
-                if (!isCountryCodeVisible()) {
+
+                Platform.runLater(() -> {
+                    PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
                     change.setText("");
                     change.setCaretPosition(0);
                     change.setAnchor(0);
                     change.setRange(0, 0);
-                }
+                });
             }
         }
 
-        private String doFormat(String newRawPhoneNumber) {
+        private String doFormat(String newRawPhoneNumber, Country country) {
             if (newRawPhoneNumber == null || newRawPhoneNumber.isEmpty() || getSelectedCountry() == null) {
                 return "";
             }
 
-            Country country = getSelectedCountry();
             AsYouTypeFormatter formatter = phoneNumberUtil.getAsYouTypeFormatter(country.iso2Code());
             String formattedNumber = "";
 
             for (char c : newRawPhoneNumber.toCharArray()) {
                 formattedNumber = formatter.inputDigit(c);
-            }
-
-            if (isCountryCodeVisible()) {
-                return formattedNumber;
             }
 
             return formattedNumber.substring(country.countryCodePrefix().length()).trim();
@@ -855,7 +923,7 @@ public class PhoneNumberField extends CustomTextField {
 
             try {
                 selfUpdate = true;
-                String formattedPhoneNumber = doFormat(newRawPhoneNumber);
+                String formattedPhoneNumber = doFormat(newRawPhoneNumber, getSelectedCountry());
                 PhoneNumberField.this.setText(formattedPhoneNumber);
                 PhoneNumberField.this.positionCaret(formattedPhoneNumber.length());
             } finally {
