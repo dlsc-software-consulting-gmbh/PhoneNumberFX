@@ -493,8 +493,8 @@ public class PhoneNumberField extends CustomTextField {
     private final BooleanProperty countryCodeVisible = new SimpleBooleanProperty(this, "countryCodeVisible");
 
     /**
-     * Allows to keep the country code visible in the text field.  When it is send to {@code false} the country code
-     * is never part of the text field.
+     * @return When it is set to {@code true} the country code stays visible in the text field.  By default, this is set
+     * to {@code false}.
      */
     public final BooleanProperty countryCodeVisibleProperty() {
         return countryCodeVisible;
