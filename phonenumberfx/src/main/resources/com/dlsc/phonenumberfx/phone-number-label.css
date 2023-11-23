@@ -1,0 +1,3 @@
+.phone-number-label.invalid {
+    -fx-text-fill: red;
+}
