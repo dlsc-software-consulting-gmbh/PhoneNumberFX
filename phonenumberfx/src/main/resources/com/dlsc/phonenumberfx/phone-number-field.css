@@ -2,7 +2,6 @@
 }
 
 .phone-number-field:invalid {
-    -fx-text-fill: red;
 }
 
 .phone-number-field > .left-pane > .combo-box {
