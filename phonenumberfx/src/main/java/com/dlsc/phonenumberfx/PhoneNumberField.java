@@ -145,22 +145,9 @@ public class PhoneNumberField extends CustomTextField {
         resolver = new CountryResolver();
         formatter = new PhoneNumberFormatter();
 
-        Runnable sampleUpdater = () -> {
-            if (getSelectedCountry() == null) {
-                setPromptText(null);
-            } else {
-                Phonenumber.PhoneNumber sampleNumber;
-                if (getExpectedPhoneNumberType() == null) {
-                    sampleNumber = phoneNumberUtil.getExampleNumber(getSelectedCountry().iso2Code());
-                } else {
-                    sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
-                }
-                setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
-            }
-        };
-
-        expectedPhoneNumberTypeProperty().addListener(obs -> sampleUpdater.run());
-        selectedCountryProperty().addListener(obs -> sampleUpdater.run());
+        InvalidationListener updateSampleListener = it -> updatePromptTextWithExampleNumber();
+        expectedPhoneNumberTypeProperty().addListener(updateSampleListener);
+        selectedCountryProperty().addListener(updateSampleListener);
 
         phoneNumberProperty().addListener((obs, oldV, newV) -> {
             if (newV == null) {
@@ -215,6 +202,27 @@ public class PhoneNumberField extends CustomTextField {
         getPreferredCountries().addListener(listener);
         countryCellFactoryProperty().addListener(listener);
         callingCodesUpdater.run();
+
+        validProperty().addListener(it -> updateValidPseudoState());
+        updateValidPseudoState();
+    }
+
+    private void updatePromptTextWithExampleNumber() {
+        if (getSelectedCountry() == null) {
+            setPromptText(null);
+        } else {
+            Phonenumber.PhoneNumber sampleNumber;
+            if (getExpectedPhoneNumberType() == null) {
+                sampleNumber = phoneNumberUtil.getExampleNumber(getSelectedCountry().iso2Code());
+            } else {
+                sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
+            }
+            setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
+        }
+    }
+
+    private void updateValidPseudoState() {
+        pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !isValid());
     }
 
     @Override
@@ -443,13 +451,7 @@ public class PhoneNumberField extends CustomTextField {
         countryCellFactoryProperty().set(countryCellFactory);
     }
 
-    private final ReadOnlyBooleanWrapper valid = new ReadOnlyBooleanWrapper(this, "valid") {
-        @Override
-        public void set(boolean newValid) {
-            super.set(newValid);
-            pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newValid);
-        }
-    };
+    private final ReadOnlyBooleanWrapper valid = new ReadOnlyBooleanWrapper(this, "valid");
 
     /**
      * Read-only property that indicates whether the phone number is valid or not.
