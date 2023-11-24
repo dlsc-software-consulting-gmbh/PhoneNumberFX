@@ -76,7 +76,7 @@ public class PhoneNumberLabel extends Label {
                 setValid(phoneNumberUtil.isValidNumber(phoneNumber));
 
             } catch (NumberParseException e) {
-                if (newRawPhoneNumber.startsWith(getCountry().countryCodePrefix())) {
+                if (newRawPhoneNumber != null && newRawPhoneNumber.startsWith(getCountry().countryCodePrefix())) {
                     newRawPhoneNumber = newRawPhoneNumber.substring(getCountry().countryCodePrefix().length());
                 }
                 e164PhoneNumber.set("");
