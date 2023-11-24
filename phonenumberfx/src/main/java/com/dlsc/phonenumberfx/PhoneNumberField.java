@@ -17,6 +17,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
@@ -133,7 +134,7 @@ public class PhoneNumberField extends CustomTextField {
         comboBox.setMaxWidth(Double.MAX_VALUE);
         comboBox.setMaxHeight(Double.MAX_VALUE);
         comboBox.setFocusTraversable(false);
-        comboBox.disableProperty().bind(disableCountryDropdownProperty());
+        comboBox.disableProperty().bind(disableCountryDropdownProperty().or(editableProperty().not()));
         comboBox.valueProperty().bindBidirectional(selectedCountryProperty());
 
         ButtonCell buttonCell = new ButtonCell();
@@ -146,6 +147,7 @@ public class PhoneNumberField extends CustomTextField {
         formatter = new PhoneNumberFormatter();
 
         InvalidationListener updateSampleListener = it -> updatePromptTextWithExampleNumber();
+        showExampleNumbersProperty().addListener(updateSampleListener);
         expectedPhoneNumberTypeProperty().addListener(updateSampleListener);
         selectedCountryProperty().addListener(updateSampleListener);
 
@@ -161,7 +163,9 @@ public class PhoneNumberField extends CustomTextField {
             }
         });
 
-        rawPhoneNumberProperty().addListener((obs, oldV, newV) -> Platform.runLater(() -> formatter.setFormattedPhoneNumber(getRawPhoneNumber())));
+        ChangeListener<Object> updateFormattedPhoneNumberListener = (obs, oldV, newV) -> Platform.runLater(() -> formatter.setFormattedPhoneNumber(getRawPhoneNumber()));
+        rawPhoneNumberProperty().addListener(updateFormattedPhoneNumberListener);
+        countryCodeVisibleProperty().addListener(updateFormattedPhoneNumberListener);
         validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newV));
 
         countryCellFactory.addListener((obs, oldValue, newValue) -> {
@@ -208,16 +212,22 @@ public class PhoneNumberField extends CustomTextField {
     }
 
     private void updatePromptTextWithExampleNumber() {
-        if (getSelectedCountry() == null) {
-            setPromptText(null);
-        } else {
-            Phonenumber.PhoneNumber sampleNumber;
-            if (getExpectedPhoneNumberType() == null) {
-                sampleNumber = phoneNumberUtil.getExampleNumber(getSelectedCountry().iso2Code());
+        if (isShowExampleNumbers()) {
+            if (getSelectedCountry() == null) {
+                setPromptText(null);
             } else {
-                sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
+                Phonenumber.PhoneNumber sampleNumber;
+                if (getExpectedPhoneNumberType() == null) {
+                    sampleNumber = phoneNumberUtil.getExampleNumber(getSelectedCountry().iso2Code());
+                } else {
+                    sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
+                }
+                setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
             }
-            setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
+        } else {
+            if (!promptTextProperty().isBound()) {
+                setPromptText(null);
+            }
         }
     }
 
@@ -294,6 +304,20 @@ public class PhoneNumberField extends CustomTextField {
             }
         }
     };
+
+    private final BooleanProperty showExampleNumbers = new SimpleBooleanProperty(this, "showExampleNumbers", true);
+
+    public final boolean isShowExampleNumbers() {
+        return showExampleNumbers.get();
+    }
+
+    public final BooleanProperty showExampleNumbersProperty() {
+        return showExampleNumbers;
+    }
+
+    public final void setShowExampleNumbers(boolean showExampleNumbers) {
+        this.showExampleNumbers.set(showExampleNumbers);
+    }
 
     /**
      * @return The raw phone number corresponding exactly to what the user typed in, including the (+) sign appended at the
