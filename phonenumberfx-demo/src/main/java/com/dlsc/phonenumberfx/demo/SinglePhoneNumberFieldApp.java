@@ -37,10 +37,13 @@ public class SinglePhoneNumberFieldApp extends Application {
         CheckBox disableCountryCodeBox = new CheckBox("Disable country dropdown");
         disableCountryCodeBox.selectedProperty().bindBidirectional(field.disableCountryDropdownProperty());
 
+        CheckBox showCountryCodeBox = new CheckBox("Show country dropdown");
+        showCountryCodeBox.selectedProperty().bindBidirectional(field.showCountryDropdownProperty());
+
         CheckBox editableBox = new CheckBox("Editable");
         editableBox.selectedProperty().bindBidirectional(field.editableProperty());
 
-        vBox.getChildren().addAll(new Separator(), clearButton, showExampleBox, countryCodeVisibleBox, disableCountryCodeBox, editableBox);
+        vBox.getChildren().addAll(new Separator(), clearButton, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox);
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(vBox);
