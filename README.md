@@ -9,3 +9,5 @@ which is rather big in size, hence we decided to distribute this control via its
 GitHub (as opposed to adding it to the GemsFX project.)
 
 The demo website of Google's library [can be found here](https://libphonenumber.appspot.com).
+
+A great tutorial for this control [can be found here](https://coderscratchpad.com/javafx-phone-number-input-field/).
