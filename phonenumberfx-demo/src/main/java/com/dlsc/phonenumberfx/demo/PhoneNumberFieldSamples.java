@@ -111,7 +111,7 @@ public final class PhoneNumberFieldSamples {
         return buildSample(title, description, field);
     }
 
-    private static Node buildSample(String title, String description, PhoneNumberField field) {
+    public static Node buildSample(String title, String description, PhoneNumberField field) {
         Label titleLabel = new Label(title);
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 1.4em;");
 
