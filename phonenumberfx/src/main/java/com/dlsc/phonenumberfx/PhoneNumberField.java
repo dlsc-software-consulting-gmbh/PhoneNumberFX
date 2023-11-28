@@ -5,12 +5,26 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.beans.property.*;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ListProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleListProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
@@ -23,8 +37,12 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import org.controlsfx.control.textfield.CustomTextField;
 
@@ -77,6 +95,8 @@ public class PhoneNumberField extends CustomTextField {
     private final CountryResolver resolver;
     private final PhoneNumberFormatter formatter;
     private final PhoneNumberUtil phoneNumberUtil;
+    private final ComboBox<Country> comboBox;
+    private final ObservableList<Country> countries = FXCollections.observableArrayList();
 
     /**
      * Builds a new phone number field with the default settings. The available country
@@ -86,9 +106,7 @@ public class PhoneNumberField extends CustomTextField {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getAvailableCountries().setAll(Country.values());
 
-        ObservableList<Country> countries = FXCollections.observableArrayList();
-
-        ComboBox<Country> comboBox = new ComboBox<>() {
+        comboBox = new ComboBox<>() {
             @Override
             protected Skin<?> createDefaultSkin() {
                 return new ComboBoxListViewSkin<>(this) {
@@ -110,7 +128,7 @@ public class PhoneNumberField extends CustomTextField {
                         Node displayNode = getDisplayNode();
                         Bounds bounds = displayNode.getBoundsInParent();
 
-                        // use same bounds for globe that were computed for the button cell
+                        // use the same bounds for the globe that were computed for the button cell
                         this.globeButton.resizeRelocate(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
                         this.globeButton.setVisible(getSkinnable().getValue() == null);
                         this.globeButton.setManaged(getSkinnable().getValue() == null);
@@ -139,23 +157,12 @@ public class PhoneNumberField extends CustomTextField {
             if (evt.getCode().isLetterKey()) {
                 String letter = evt.getCode().getChar();
 
-                ComboBoxListViewSkin<Country> comboBoxSkin = (ComboBoxListViewSkin<Country>) comboBox.getSkin();
-                ListView<Country> listView = (ListView<Country>) comboBoxSkin.getPopupContent();
+                countries.stream()
+                        .filter(c -> c.countryName().startsWith(letter))
+                        .findFirst().ifPresent(this::showCountry);
 
-                Country country = countries
-                    .stream()
-                    .filter(c -> c.countryName().startsWith(letter))
-                    .findFirst()
-                    .orElse(null);
-
-                if (country != null) {
-                    if (!comboBox.isShowing()) {
-                        comboBox.show();
-                    }
-
-                    listView.requestFocus();
-                    listView.scrollTo(country);
-                }
+            } else if (evt.getCode().equals(KeyCode.DOWN)) {
+                showCountry(null);
             }
         });
 
@@ -194,42 +201,58 @@ public class PhoneNumberField extends CustomTextField {
             }
         });
 
-        Runnable callingCodesUpdater = () -> {
-            Set<Country> temp1 = new TreeSet<>(NAME_SORT_ASC);
-            Set<Country> temp2 = new TreeSet<>(NAME_SORT_ASC);
+        InvalidationListener updateCallingCodes = it -> updateCountryList();
 
-            getAvailableCountries().forEach(code -> {
-                if (!getPreferredCountries().contains(code)) {
-                    temp2.add(code);
-                }
-            });
+        getAvailableCountries().addListener(updateCallingCodes);
+        getPreferredCountries().addListener(updateCallingCodes);
+        countryCellFactoryProperty().addListener(updateCallingCodes);
 
-            getPreferredCountries().forEach(code -> {
-                if (getAvailableCountries().contains(code)) {
-                    temp1.add(code);
-                }
-            });
-
-            List<Country> temp = new ArrayList<>();
-            temp.addAll(temp1);
-            temp.addAll(temp2);
-            countries.setAll(temp);
-
-            if (getSelectedCountry() != null && !temp.contains(getSelectedCountry())) {
-                setRawPhoneNumber(null); // Clear up the value in case the country code is not available anymore
-            }
-        };
-
-        InvalidationListener listener = obs -> callingCodesUpdater.run();
-        getAvailableCountries().addListener(listener);
-        getPreferredCountries().addListener(listener);
-        countryCellFactoryProperty().addListener(listener);
-        callingCodesUpdater.run();
+        updateCountryList();
 
         validProperty().addListener(it -> updateValidPseudoState());
         updateValidPseudoState();
+    }
 
-        getStylesheets().add(getUserAgentStylesheet());
+    private void updateCountryList() {
+        Set<Country> temp1 = new TreeSet<>(NAME_SORT_ASC);
+        Set<Country> temp2 = new TreeSet<>(NAME_SORT_ASC);
+
+        getAvailableCountries().forEach(code -> {
+            if (!getPreferredCountries().contains(code)) {
+                temp2.add(code);
+            }
+        });
+
+        getPreferredCountries().forEach(code -> {
+            if (getAvailableCountries().contains(code)) {
+                temp1.add(code);
+            }
+        });
+
+        List<Country> temp = new ArrayList<>();
+        temp.addAll(temp1);
+        temp.addAll(temp2);
+        countries.setAll(temp);
+
+        if (getSelectedCountry() != null && !temp.contains(getSelectedCountry())) {
+            setRawPhoneNumber(null); // Clear up the value in case the country code is not available anymore
+        }
+    }
+
+    private void showCountry(Country country) {
+        if (!comboBox.isShowing()) {
+            comboBox.show();
+        }
+
+        ComboBoxListViewSkin<Country> comboBoxSkin = (ComboBoxListViewSkin<Country>) comboBox.getSkin();
+        ListView<Country> listView = (ListView<Country>) comboBoxSkin.getPopupContent();
+
+        listView.requestFocus();
+
+        if (country != null) {
+            listView.scrollTo(country);
+            listView.getSelectionModel().select(country);
+        }
     }
 
     private void updatePromptTextWithExampleNumber() {
@@ -279,7 +302,7 @@ public class PhoneNumberField extends CustomTextField {
             super.updateItem(country, empty);
 
             if (!empty && country != null) {
-                ButtonCell.this.setGraphic(getCountryGraphic(country));
+                setGraphic(getCountryGraphic(country));
             }
         }
     }
@@ -566,8 +589,8 @@ public class PhoneNumberField extends CustomTextField {
 
     private boolean isExpectedTypeMatch(Phonenumber.PhoneNumber number) {
         return Optional.ofNullable(getExpectedPhoneNumberType())
-            .map(t -> t == phoneNumberUtil.getNumberType(number))
-            .orElse(true);
+                .map(t -> t == phoneNumberUtil.getNumberType(number))
+                .orElse(true);
     }
 
     // COUNTRY CODE VISIBLE
@@ -925,6 +948,7 @@ public class PhoneNumberField extends CustomTextField {
 
         /**
          * The phone number prefix including the country and default area code if any.
+         *
          * @return The phone number prefix.
          */
         public String phonePrefix() {
@@ -1153,8 +1177,6 @@ public class PhoneNumberField extends CustomTextField {
 
         private CountryCell() {
             getStyleClass().add("country-cell");
-
-            getStylesheets().add(PhoneNumberField.this.getUserAgentStylesheet());
         }
 
         @Override
@@ -1205,6 +1227,8 @@ public class PhoneNumberField extends CustomTextField {
         StackPane wrapper = new StackPane(imageView);
         wrapper.getStyleClass().add("flag-wrapper");
         wrapper.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        wrapper.setPadding(new Insets(1));
+        wrapper.setBackground(new Background(new BackgroundFill(Color.BLACK, CornerRadii.EMPTY, Insets.EMPTY)));
 
         return wrapper;
     }

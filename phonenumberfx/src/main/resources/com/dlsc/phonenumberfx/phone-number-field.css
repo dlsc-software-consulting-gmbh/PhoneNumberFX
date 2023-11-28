@@ -29,7 +29,7 @@
 
 .phone-number-field > .left-pane > .combo-box > .graphics > .flag-wrapper {
     -fx-padding: 1px;
-    -fx-background-color: blue ;
+    -fx-background-color: -fx-text-inner-color;
 }
 
 .phone-number-field > .left-pane > .combo-box > .globe-button {
