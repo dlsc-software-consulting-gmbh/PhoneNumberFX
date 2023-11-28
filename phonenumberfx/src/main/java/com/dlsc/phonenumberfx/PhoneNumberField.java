@@ -43,8 +43,10 @@ import java.util.function.UnaryOperator;
 
 /**
  * A control for entering phone numbers. By default, the phone numbers are expressed in international format,
- * including the country calling code and delivered by the {@link #rawPhoneNumberProperty() phone number} property.
- * The control supports a list of {@link #getAvailableCountries() available countries}.
+ * including the country calling code and delivered by {@link #rawPhoneNumberProperty()}.
+ * Another property returns the phone number in the international standard format E164.
+ * The control supports a list of {@link #getAvailableCountries() available countries} and a list of
+ * {@link #getPreferredCountries() preferred countries}.
  */
 public class PhoneNumberField extends CustomTextField {
 
@@ -202,6 +204,8 @@ public class PhoneNumberField extends CustomTextField {
 
         validProperty().addListener(it -> updateValidPseudoState());
         updateValidPseudoState();
+
+        getStylesheets().add(getUserAgentStylesheet());
     }
 
     private void updatePromptTextWithExampleNumber() {
@@ -539,8 +543,9 @@ public class PhoneNumberField extends CustomTextField {
     private final ObjectProperty<PhoneNumberUtil.PhoneNumberType> expectedPhoneNumberType = new SimpleObjectProperty<>(this, "expectedPhoneNumberType");
 
     /**
-     * @return Property that indicates the expected phone number type.  This plays a role in the validation and
-     * also showing an example of the phone number format in the text field after selecting the country.
+     * Property that indicates the expected phone number type.
+     * This plays a role in the validation and also the showing of an example / prompt text of the
+     * phone number format in the text field after selecting the country.
      */
     public final ObjectProperty<PhoneNumberUtil.PhoneNumberType> expectedPhoneNumberTypeProperty() {
         return expectedPhoneNumberType;
@@ -1093,6 +1098,8 @@ public class PhoneNumberField extends CustomTextField {
 
         private CountryCell() {
             getStyleClass().add("country-cell");
+
+            getStylesheets().add(PhoneNumberField.this.getUserAgentStylesheet());
         }
 
         @Override
