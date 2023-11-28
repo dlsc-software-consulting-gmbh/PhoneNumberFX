@@ -59,8 +59,8 @@ public class PhoneNumberField extends CustomTextField {
     }
 
     private static final Comparator<Country> NAME_SORT_ASC = (c1, c2) -> {
-        String c1Name = new Locale("en", c1.iso2Code()).getDisplayCountry();
-        String c2Name = new Locale("en", c2.iso2Code()).getDisplayCountry();
+        String c1Name = c1.countryName();
+        String c2Name = c2.countryName();
         return c1Name.compareTo(c2Name);
     };
 
@@ -112,8 +112,8 @@ public class PhoneNumberField extends CustomTextField {
 
                         // use same bounds for globe that were computed for the button cell
                         this.globeButton.resizeRelocate(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
-                        this.globeButton.setVisible(getValue() == null);
-                        this.globeButton.setManaged(getValue() == null);
+                        this.globeButton.setVisible(getSkinnable().getValue() == null);
+                        this.globeButton.setManaged(getSkinnable().getValue() == null);
                         this.globeButton.toFront();
                     }
                 };
@@ -134,6 +134,30 @@ public class PhoneNumberField extends CustomTextField {
         comboBox.setButtonCell(buttonCell);
 
         setLeft(comboBox);
+
+        addEventFilter(KeyEvent.KEY_PRESSED, evt -> {
+            if (evt.getCode().isLetterKey()) {
+                String letter = evt.getCode().getChar();
+
+                ComboBoxListViewSkin<Country> comboBoxSkin = (ComboBoxListViewSkin<Country>) comboBox.getSkin();
+                ListView<Country> listView = (ListView<Country>) comboBoxSkin.getPopupContent();
+
+                Country country = countries
+                    .stream()
+                    .filter(c -> c.countryName().startsWith(letter))
+                    .findFirst()
+                    .orElse(null);
+
+                if (country != null) {
+                    if (!comboBox.isShowing()) {
+                        comboBox.show();
+                    }
+
+                    listView.requestFocus();
+                    listView.scrollTo(country);
+                }
+            }
+        });
 
         phoneNumberUtil = PhoneNumberUtil.getInstance();
         resolver = new CountryResolver();
@@ -302,41 +326,10 @@ public class PhoneNumberField extends CustomTextField {
         }
     };
 
-    private final BooleanProperty showCountryDropdown = new SimpleBooleanProperty(this, "showCountryDropdown", true);
-
-    public final boolean isShowCountryDropdown() {
-        return showCountryDropdown.get();
-    }
+    // RAW PHONE NUMBER
 
     /**
-     * Returns the property indicating whether the country dropdown is visible or not.
-     *
-     * @return the showCountryDropdown property
-     */
-    public final BooleanProperty showCountryDropdownProperty() {
-        return showCountryDropdown;
-    }
-
-    public final void setShowCountryDropdown(boolean showCountryDropdown) {
-        this.showCountryDropdown.set(showCountryDropdown);
-    }
-
-    private final BooleanProperty showExampleNumbers = new SimpleBooleanProperty(this, "showExampleNumbers", true);
-
-    public final boolean isShowExampleNumbers() {
-        return showExampleNumbers.get();
-    }
-
-    public final BooleanProperty showExampleNumbersProperty() {
-        return showExampleNumbers;
-    }
-
-    public final void setShowExampleNumbers(boolean showExampleNumbers) {
-        this.showExampleNumbers.set(showExampleNumbers);
-    }
-
-    /**
-     * The raw phone number corresponding exactly to what the user typed in, including the (+) sign appended at the
+     * @return The raw phone number corresponding exactly to what the user typed in, including the (+) sign appended at the
      * beginning.  This value can be a valid E164 formatted number.
      */
     public final StringProperty rawPhoneNumberProperty() {
@@ -350,6 +343,8 @@ public class PhoneNumberField extends CustomTextField {
     public final void setRawPhoneNumber(String rawPhoneNumber) {
         rawPhoneNumberProperty().set(rawPhoneNumber);
     }
+
+    // SELECTED COUNTRY
 
     private final ObjectProperty<Country> selectedCountry = new SimpleObjectProperty<>(this, "selectedCountry") {
         private boolean selfUpdate;
@@ -375,7 +370,7 @@ public class PhoneNumberField extends CustomTextField {
     };
 
     /**
-     * The selected country. Use this property if you want to define a default (pre-selected) country.
+     * @return The selected country. Use this property if you want to define a default (pre-selected) country.
      * It can also be used in conjunction with {@link #disableCountryDropdownProperty()} to avoid
      * changing the country part.
      */
@@ -395,6 +390,9 @@ public class PhoneNumberField extends CustomTextField {
 
     private final ReadOnlyStringWrapper nationalPhoneNumber = new ReadOnlyStringWrapper(this, "nationalPhoneNumber");
 
+    /**
+     * @return The {@link #phoneNumberProperty() phone number} formatted as a national number without the country code.
+     */
     public final ReadOnlyStringProperty nationalPhoneNumberProperty() {
         return nationalPhoneNumber.getReadOnlyProperty();
     }
@@ -411,6 +409,9 @@ public class PhoneNumberField extends CustomTextField {
 
     private final ReadOnlyStringWrapper e164PhoneNumber = new ReadOnlyStringWrapper(this, "e164PhoneNumber");
 
+    /**
+     * @return The {@link #phoneNumberProperty() phone number} formatted as E164 standard format including the country code and national number.
+     */
     public final ReadOnlyStringProperty e164PhoneNumberProperty() {
         return e164PhoneNumber.getReadOnlyProperty();
     }
@@ -427,6 +428,10 @@ public class PhoneNumberField extends CustomTextField {
 
     private final ReadOnlyObjectWrapper<Phonenumber.PhoneNumber> phoneNumber = new ReadOnlyObjectWrapper<>(this, "phoneNumber");
 
+    /**
+     * @return The phone number parsed out from the {@link #rawPhoneNumberProperty() raw phone number}, this might be {@code null} if the
+     * phone number is not a valid one.
+     */
     public final ReadOnlyObjectProperty<Phonenumber.PhoneNumber> phoneNumberProperty() {
         return phoneNumber.getReadOnlyProperty();
     }
@@ -444,7 +449,7 @@ public class PhoneNumberField extends CustomTextField {
     private final ListProperty<Country> availableCountries = new SimpleListProperty<>(FXCollections.observableArrayList());
 
     /**
-     * The list of available countries from which the user can select one and put it into the
+     * @return The list of available countries from which the user can select one and put it into the
      * {@link #selectedCountryProperty()}.
      */
     public final ListProperty<Country> availableCountriesProperty() {
@@ -464,7 +469,7 @@ public class PhoneNumberField extends CustomTextField {
     private final ListProperty<Country> preferredCountries = new SimpleListProperty<>(FXCollections.observableArrayList());
 
     /**
-     * The list of preferred countries that are shown first in the list of available countries.  If a country
+     * @return The list of preferred countries that are shown first in the list of available countries.  If a country
      * is added to this list that is not present in the {@link #getAvailableCountries()} then it will be ignored
      * and not shown.
      */
@@ -485,7 +490,7 @@ public class PhoneNumberField extends CustomTextField {
     private final BooleanProperty disableCountryDropdown = new SimpleBooleanProperty(this, "disableCountryDropdown");
 
     /**
-     * Flag to disable the country dropdown. This will allow to specify a default country and avoid changing it
+     * @return Flag to disable the country dropdown. This will allow to specify a default country and avoid changing it
      * in case it is wanted to be fixed.
      */
     public final BooleanProperty disableCountryDropdownProperty() {
@@ -505,7 +510,7 @@ public class PhoneNumberField extends CustomTextField {
     private final ObjectProperty<Callback<ListView<Country>, ListCell<Country>>> countryCellFactory = new SimpleObjectProperty<>(this, "countryCellFactory", listView -> new CountryCell());
 
     /**
-     * Factory that allows to replace the list cells used to graphically represent each country.
+     * @return Factory that allows to replace the list cells used to graphically represent each country.
      */
     public final ObjectProperty<Callback<ListView<Country>, ListCell<Country>>> countryCellFactoryProperty() {
         return countryCellFactory;
@@ -524,7 +529,7 @@ public class PhoneNumberField extends CustomTextField {
     private final ReadOnlyBooleanWrapper valid = new ReadOnlyBooleanWrapper(this, "valid");
 
     /**
-     * Read-only property that indicates whether the phone number is valid or not.
+     * @return Read-only property that indicates whether the phone number is valid or not.
      */
     public final ReadOnlyBooleanProperty validProperty() {
         return valid.getReadOnlyProperty();
@@ -570,7 +575,7 @@ public class PhoneNumberField extends CustomTextField {
     private final BooleanProperty countryCodeVisible = new SimpleBooleanProperty(this, "countryCodeVisible");
 
     /**
-     * Determines if the country code stays visible in the field or if it gets removed as soon as
+     * @return Determines if the country code stays visible in the field or if it gets removed as soon as
      * the field has determined which country it is.
      */
     public final BooleanProperty countryCodeVisibleProperty() {
@@ -583,6 +588,44 @@ public class PhoneNumberField extends CustomTextField {
 
     public final void setCountryCodeVisible(boolean countryCodeVisible) {
         countryCodeVisibleProperty().set(countryCodeVisible);
+    }
+
+    // SHOW COUNTRY DROPDOWN
+
+    private final BooleanProperty showCountryDropdown = new SimpleBooleanProperty(this, "showCountryDropdown", true);
+
+    /**
+     * @return The property indicating whether the country dropdown is visible or not.
+     */
+    public final BooleanProperty showCountryDropdownProperty() {
+        return showCountryDropdown;
+    }
+
+    public final boolean isShowCountryDropdown() {
+        return showCountryDropdown.get();
+    }
+
+    public final void setShowCountryDropdown(boolean showCountryDropdown) {
+        this.showCountryDropdown.set(showCountryDropdown);
+    }
+
+    // SHOW EXAMPLE NUMBERS
+
+    private final BooleanProperty showExampleNumbers = new SimpleBooleanProperty(this, "showExampleNumbers", true);
+
+    /**
+     * @return The property that allows to show/hide prompt text with phone number examples after selecting the country.
+     */
+    public final BooleanProperty showExampleNumbersProperty() {
+        return showExampleNumbers;
+    }
+
+    public final boolean isShowExampleNumbers() {
+        return showExampleNumbers.get();
+    }
+
+    public final void setShowExampleNumbers(boolean showExampleNumbers) {
+        this.showExampleNumbers.set(showExampleNumbers);
     }
 
     /**
@@ -864,6 +907,9 @@ public class PhoneNumberField extends CustomTextField {
             return iso2Code;
         }
 
+        /**
+         * @return The phone number prefix including only the country code with (+) sign.
+         */
         public String countryCodePrefix() {
             return "+" + countryCode();
         }
@@ -877,9 +923,18 @@ public class PhoneNumberField extends CustomTextField {
             return areaCodes().length > 0 ? areaCodes()[0] : null;
         }
 
+        /**
+         * The phone number prefix including the country and default area code if any.
+         * @return The phone number prefix.
+         */
         public String phonePrefix() {
             return countryCodePrefix() + Optional.ofNullable(defaultAreaCode()).map(Object::toString).orElse("");
         }
+
+        private String countryName() {
+            return new Locale("en", iso2Code).getDisplayCountry();
+        }
+
     }
 
     /**
@@ -1109,7 +1164,7 @@ public class PhoneNumberField extends CustomTextField {
             int index = -1;
 
             if (country != null && !empty) {
-                setText(new Locale("en", country.iso2Code()).getDisplayCountry());
+                setText(country.countryName());
                 setGraphic(getCountryGraphic(country));
                 index = getPreferredCountries().indexOf(country);
             } else {
