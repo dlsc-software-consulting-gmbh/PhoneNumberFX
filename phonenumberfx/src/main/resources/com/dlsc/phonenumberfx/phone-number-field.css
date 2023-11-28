@@ -4,6 +4,9 @@
 .phone-number-field:invalid {
 }
 
+.phone-number-field > .left-pane {
+}
+
 .phone-number-field > .left-pane > .combo-box {
     -fx-pref-width: 30px;
     -fx-background-color: transparent;
@@ -20,14 +23,13 @@
     -fx-background-radius: 0px;
 }
 
-.phone-number-field > .left-pane > .combo-box .arrow-button .arrow {
+.phone-number-field > .left-pane > .combo-box > .arrow-button > .arrow {
     -fx-background-color: -fx-text-background-color;
 }
 
-.phone-number-field > .left-pane > .combo-box .graphics .flag-wrapper {
+.phone-number-field > .left-pane > .combo-box > .graphics > .flag-wrapper {
     -fx-padding: 1px;
-    -fx-background: -fx-control-inner-background;
-    -fx-background-color: -fx-selection-bar-text;
+    -fx-background-color: -fx-text-inner-color;
 }
 
 .phone-number-field > .left-pane > .combo-box > .globe-button {
