@@ -130,10 +130,10 @@ public class PhoneNumberField extends CustomTextField {
                         Bounds bounds = displayNode.getBoundsInParent();
 
                         // use the same bounds for the globe that were computed for the button cell
-                        this.globeButton.resizeRelocate(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
-                        this.globeButton.setVisible(getSkinnable().getValue() == null);
-                        this.globeButton.setManaged(getSkinnable().getValue() == null);
-                        this.globeButton.toFront();
+                        globeButton.resizeRelocate(bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight());
+                        globeButton.setVisible(getSkinnable().getValue() == null);
+                        globeButton.setManaged(getSkinnable().getValue() == null);
+                        globeButton.toFront();
                     }
                 };
             }
@@ -1007,10 +1007,10 @@ public class PhoneNumberField extends CustomTextField {
     private final class PhoneNumberFormatter implements UnaryOperator<TextFormatter.Change> {
 
         private PhoneNumberFormatter() {
-            PhoneNumberField.this.setTextFormatter(new TextFormatter<>(this));
-            PhoneNumberField.this.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+            setTextFormatter(new TextFormatter<>(this));
+            addEventHandler(KeyEvent.KEY_PRESSED, e -> {
                 if (e.getCode() == KeyCode.BACK_SPACE
-                        && (PhoneNumberField.this.getText() == null || PhoneNumberField.this.getText().isEmpty())
+                        && (getText() == null || getText().isEmpty())
                         && getSelectedCountry() != null
                         && !getDisableCountryDropdown()) {
 
@@ -1072,7 +1072,7 @@ public class PhoneNumberField extends CustomTextField {
                 setSelectedCountry(country);
                 if (!isCountryCodeVisible()) {
                     Platform.runLater(() -> {
-                        PhoneNumberField.this.setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
+                        setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
                         change.setText("");
                         change.setCaretPosition(0);
                         change.setAnchor(0);
@@ -1129,8 +1129,8 @@ public class PhoneNumberField extends CustomTextField {
             try {
                 selfUpdate = true;
                 String formattedPhoneNumber = doFormat(newRawPhoneNumber, getSelectedCountry());
-                PhoneNumberField.this.setText(formattedPhoneNumber);
-                PhoneNumberField.this.positionCaret(formattedPhoneNumber.length());
+                setText(formattedPhoneNumber);
+                positionCaret(formattedPhoneNumber.length());
             } finally {
                 selfUpdate = false;
             }
