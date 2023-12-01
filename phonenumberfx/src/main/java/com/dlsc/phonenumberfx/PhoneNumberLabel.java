@@ -167,7 +167,7 @@ public class PhoneNumberLabel extends Label {
 
     // ERROR TYPE
 
-    private final ObjectProperty<ErrorType> errorType = new SimpleObjectProperty<>(this, "errorType");
+    private final ReadOnlyObjectWrapper<ErrorType> errorType = new ReadOnlyObjectWrapper<>(this, "errorType");
 
     public final ErrorType getErrorType() {
         return errorType.get();
@@ -180,12 +180,8 @@ public class PhoneNumberLabel extends Label {
      *
      * @return the error type property
      */
-    public final ObjectProperty<ErrorType> errorTypeProperty() {
-        return errorType;
-    }
-
-    public final void setErrorType(ErrorType errorType) {
-        this.errorType.set(errorType);
+    public final ReadOnlyObjectProperty<ErrorType> errorTypeProperty() {
+        return errorType.getReadOnlyProperty();
     }
 
     /**
