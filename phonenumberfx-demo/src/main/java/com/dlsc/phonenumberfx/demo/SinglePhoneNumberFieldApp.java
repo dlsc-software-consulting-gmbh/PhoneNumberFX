@@ -1,12 +1,14 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.VBox;
@@ -43,7 +45,15 @@ public class SinglePhoneNumberFieldApp extends Application {
         CheckBox editableBox = new CheckBox("Editable");
         editableBox.selectedProperty().bindBidirectional(field.editableProperty());
 
-        vBox.getChildren().addAll(new Separator(), clearButton, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox);
+        ComboBox<PhoneNumberUtil.PhoneNumberType> expectedTypeBox = new ComboBox<>();
+        expectedTypeBox.getItems().setAll(PhoneNumberUtil.PhoneNumberType.values());
+        expectedTypeBox.valueProperty().bindBidirectional(field.expectedPhoneNumberTypeProperty());
+
+        ComboBox<PhoneNumberField.Country> countryBox = new ComboBox<>();
+        countryBox.getItems().setAll(PhoneNumberField.Country.values());
+        countryBox.valueProperty().bindBidirectional(field.selectedCountryProperty());
+
+        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox);
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(vBox);

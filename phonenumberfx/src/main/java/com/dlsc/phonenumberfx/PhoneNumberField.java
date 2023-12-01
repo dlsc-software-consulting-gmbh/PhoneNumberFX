@@ -176,13 +176,23 @@ public class PhoneNumberField extends CustomTextField {
         expectedPhoneNumberTypeProperty().addListener(updateSampleListener);
         selectedCountryProperty().addListener(updateSampleListener);
 
+        selectedCountryProperty().addListener((obs, oldCountry, newCountry) -> {
+            // Important to execute, or we end up with partial country codes, e.g. "+4" when
+            // the user deletes numbers via backspace.
+            if (newCountry == null) {
+                Platform.runLater(() -> {
+                    setRawPhoneNumber(null);
+                });
+            }
+        });
+
         showCountryDropdownProperty().addListener(it -> requestLayout()); // important
 
         phoneNumberProperty().addListener((obs, oldV, newV) -> {
             if (newV == null) {
                 setE164PhoneNumber(null);
                 setNationalPhoneNumber(null);
-                setValid(true);
+                setValid(false);
             } else {
                 setE164PhoneNumber(phoneNumberUtil.format(newV, PhoneNumberUtil.PhoneNumberFormat.E164));
                 setNationalPhoneNumber(phoneNumberUtil.format(newV, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
@@ -268,7 +278,11 @@ public class PhoneNumberField extends CustomTextField {
                 } else {
                     sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
                 }
-                setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
+                if (sampleNumber != null) {
+                    setPromptText(formatter.doFormat(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
+                } else {
+                    setPromptText("");
+                }
             }
         } else {
             if (!promptTextProperty().isBound()) {
@@ -316,6 +330,8 @@ public class PhoneNumberField extends CustomTextField {
 
         @Override
         public void set(String newRawPhoneNumber) {
+            errorType.set(null);
+
             if (selfUpdate) {
                 return;
             }
@@ -338,6 +354,8 @@ public class PhoneNumberField extends CustomTextField {
                         setPhoneNumber(number);
                     } catch (NumberParseException e) {
                         errorType.set(e.getErrorType());
+                        setPhoneNumber(null);
+                    } catch (Exception e) {
                         setPhoneNumber(null);
                     }
                 } else {
