@@ -189,6 +189,7 @@ public class PhoneNumberField extends CustomTextField {
             }
         });
 
+        // Platform.runLater() is important or formatting will not work
         ChangeListener<Object> updateFormattedPhoneNumberListener = (obs, oldV, newV) -> Platform.runLater(() -> formatter.setFormattedPhoneNumber(getRawPhoneNumber()));
         rawPhoneNumberProperty().addListener(updateFormattedPhoneNumberListener);
         countryCodeVisibleProperty().addListener(updateFormattedPhoneNumberListener);

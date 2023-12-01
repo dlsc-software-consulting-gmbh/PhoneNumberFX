@@ -32,6 +32,8 @@ public class PhoneNumberLabel extends Label {
 
     private final PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
 
+    private boolean updatingText;
+
     /**
      * Builds a new phone number field with the default settings. The available country
      * calling codes are defined on {@link Country}.
@@ -42,8 +44,18 @@ public class PhoneNumberLabel extends Label {
 
         validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newV));
 
+        textProperty().addListener(it -> {
+            if (!updatingText) {
+                // somebody called setText(...) instead of setRawPhoneNumber(...)
+                setRawPhoneNumber(getText());
+            }
+        });
+
         rawPhoneNumber.addListener((obs, oldRawPhoneNumber, newRawPhoneNumber) -> {
+            updatingText = true;
+
             errorType.set(null);
+
             try {
                 Phonenumber.PhoneNumber phoneNumber;
 
@@ -94,6 +106,8 @@ public class PhoneNumberLabel extends Label {
                 nationalPhoneNumber.set("");
                 setText(newRawPhoneNumber);
                 setValid(false);
+            } finally {
+                updatingText = false;
             }
         });
 
