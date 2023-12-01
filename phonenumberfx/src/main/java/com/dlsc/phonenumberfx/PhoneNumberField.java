@@ -1,6 +1,7 @@
 package com.dlsc.phonenumberfx;
 
 import com.google.i18n.phonenumbers.AsYouTypeFormatter;
+import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import javafx.application.Platform;
@@ -335,7 +336,8 @@ public class PhoneNumberField extends CustomTextField {
                     try {
                         Phonenumber.PhoneNumber number = phoneNumberUtil.parse(newRawPhoneNumber, country.iso2Code());
                         setPhoneNumber(number);
-                    } catch (Exception e) {
+                    } catch (NumberParseException e) {
+                        errorType.set(e.getErrorType());
                         setPhoneNumber(null);
                     }
                 } else {
@@ -349,6 +351,25 @@ public class PhoneNumberField extends CustomTextField {
             }
         }
     };
+
+    // ERROR TYPE
+
+    private final ReadOnlyObjectWrapper<NumberParseException.ErrorType> errorType = new ReadOnlyObjectWrapper<>(this, "errorType");
+
+    public final NumberParseException.ErrorType getErrorType() {
+        return errorType.get();
+    }
+
+    /**
+     * Returns the error type property of the phone number field. The error type
+     * represents the type of error that occurred during the parsing of the phone
+     * number.
+     *
+     * @return the error type property
+     */
+    public final ReadOnlyObjectProperty<NumberParseException.ErrorType> errorTypeProperty() {
+        return errorType.getReadOnlyProperty();
+    }
 
     // RAW PHONE NUMBER
 
@@ -454,7 +475,7 @@ public class PhoneNumberField extends CustomTextField {
 
     /**
      * @return The phone number parsed out from the {@link #rawPhoneNumberProperty() raw phone number}, this might be {@code null} if the
-     * phone number is not a valid one.
+     * phone number is not valid.
      */
     public final ReadOnlyObjectProperty<Phonenumber.PhoneNumber> phoneNumberProperty() {
         return phoneNumber.getReadOnlyProperty();
