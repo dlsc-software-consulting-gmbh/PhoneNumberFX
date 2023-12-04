@@ -41,7 +41,7 @@ public final class PhoneNumberFieldSamples {
 
     public static Node buildDefaultPrefilledSample() {
         PhoneNumberField field = new PhoneNumberField();
-        field.setRawPhoneNumber("+573003767182");
+        field.setText("+573003767182");
 
         String title = "Initial Value";
         String description = "A control with default settings and a value set through code.";
@@ -136,10 +136,10 @@ public final class PhoneNumberFieldSamples {
         rightBox.setPrefWidth(400);
 
         PhoneNumberLabel phoneNumberLabel = new PhoneNumberLabel();
-        phoneNumberLabel.rawPhoneNumberProperty().bind(field.rawPhoneNumberProperty());
+        phoneNumberLabel.rawPhoneNumberProperty().bind(field.textProperty());
 
         addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
-        addField(rightBox, "Raw Number", field.rawPhoneNumberProperty());
+        addField(rightBox, "Text", field.textProperty());
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
         addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
