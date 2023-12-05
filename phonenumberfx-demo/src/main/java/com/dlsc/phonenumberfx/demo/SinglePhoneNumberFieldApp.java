@@ -59,7 +59,7 @@ public class SinglePhoneNumberFieldApp extends Application {
         scrollPane.setContent(vBox);
 
         stage.setTitle("PhoneNumberField");
-        stage.setScene(new Scene(scrollPane, 900, 400));
+        stage.setScene(new Scene(scrollPane));
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();

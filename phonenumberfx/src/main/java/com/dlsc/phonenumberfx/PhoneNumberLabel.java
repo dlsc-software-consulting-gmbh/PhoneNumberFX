@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * A control for displaying a phone number in a formatted way based on a raw number string.
  * 
- * @see #setRawPhoneNumber(String)
+ * @see #setPhoneNumber(String)
  */
 public class PhoneNumberLabel extends Label {
 
@@ -47,11 +47,11 @@ public class PhoneNumberLabel extends Label {
         textProperty().addListener(it -> {
             if (!updatingText) {
                 // somebody called setText(...) instead of setRawPhoneNumber(...)
-                setRawPhoneNumber(getText());
+                setPhoneNumber(getText());
             }
         });
 
-        rawPhoneNumber.addListener((obs, oldRawPhoneNumber, newRawPhoneNumber) -> {
+        phoneNumber.addListener((obs, oldRawPhoneNumber, newRawPhoneNumber) -> {
             updatingText = true;
 
             errorType.set(null);
@@ -82,7 +82,7 @@ public class PhoneNumberLabel extends Label {
                     }
                 } else {
                     phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, Country.UNITED_STATES.iso2Code()); // well, USA is prefix +1 :-)
-                    setText(getRawPhoneNumber());
+                    setText(getPhoneNumber());
                     e164PhoneNumber.set("");
                     nationalPhoneNumber.set("");
                 }
@@ -230,24 +230,25 @@ public class PhoneNumberLabel extends Label {
         this.strategy.set(strategy);
     }
 
-    //  RAW PHONE NUMBER
+    //  PHONE NUMBER
 
-    private final StringProperty rawPhoneNumber = new SimpleStringProperty(this, "rawPhoneNumber");
+    private final StringProperty phoneNumber = new SimpleStringProperty(this, "phoneNumber");
 
     /**
-     * @return The raw phone number corresponding exactly to what the user typed in, including the (+) sign appended at the
-     * beginning. This value can be a valid E164 formatted number.
+     * The raw phone number corresponding exactly to what the user typed in, including the (+) sign appended at the
+     * beginning. This value can be a valid E164 formatted number. The label will do its best to properly format the
+     * given number.
      */
-    public final StringProperty rawPhoneNumberProperty() {
-        return rawPhoneNumber;
+    public final StringProperty phoneNumberProperty() {
+        return phoneNumber;
     }
 
-    public final String getRawPhoneNumber() {
-        return rawPhoneNumberProperty().get();
+    public final String getPhoneNumber() {
+        return phoneNumberProperty().get();
     }
 
-    public final void setRawPhoneNumber(String rawPhoneNumber) {
-        rawPhoneNumberProperty().set(rawPhoneNumber);
+    public final void setPhoneNumber(String phoneNumber) {
+        phoneNumberProperty().set(phoneNumber);
     }
 
     // COUNTRY

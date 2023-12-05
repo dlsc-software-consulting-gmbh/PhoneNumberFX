@@ -36,7 +36,7 @@ public class PhoneNumberFieldApp extends Application {
         scrollPane.setContent(vBox);
 
         stage.setTitle("PhoneNumberField");
-        stage.setScene(new Scene(scrollPane, 900, 800));
+        stage.setScene(new Scene(scrollPane));
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();

@@ -136,12 +136,13 @@ public final class PhoneNumberFieldSamples {
         rightBox.setPrefWidth(400);
 
         PhoneNumberLabel phoneNumberLabel = new PhoneNumberLabel();
-        phoneNumberLabel.rawPhoneNumberProperty().bind(field.textProperty());
+        phoneNumberLabel.phoneNumberProperty().bind(field.e164PhoneNumberProperty());
 
         addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
         addField(rightBox, "Text", field.textProperty());
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
+        addField(rightBox, "International Format", field.internationalPhoneNumberProperty());
         addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
         addField(rightBox, "Valid", field.validProperty());
 

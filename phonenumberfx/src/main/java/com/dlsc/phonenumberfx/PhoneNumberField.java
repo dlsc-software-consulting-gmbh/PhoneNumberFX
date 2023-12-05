@@ -4,7 +4,6 @@ import com.google.i18n.phonenumbers.AsYouTypeFormatter;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
-import impl.org.controlsfx.skin.CustomTextFieldSkin;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
@@ -19,8 +18,6 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
@@ -32,7 +29,6 @@ import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Skin;
-import javafx.scene.control.TextFormatter;
 import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -108,7 +104,7 @@ public class PhoneNumberField extends CustomTextField {
         phoneNumberUtil = PhoneNumberUtil.getInstance();
         resolver = new CountryResolver();
 
-        addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+        addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.BACK_SPACE
                     && (getText() == null || getText().isEmpty())
                     && getSelectedCountry() != null
@@ -119,37 +115,6 @@ public class PhoneNumberField extends CustomTextField {
                 e.consume();
             }
         });
-
-
-//        setTextFormatter(new TextFormatter<>(change -> {
-//            Country country = getSelectedCountry();
-//
-//            if (change.isAdded()) {
-//                String text = change.getText();
-//
-//                if (getSelectedCountry() != null) {
-//                    try {
-//                        Phonenumber.PhoneNumber number = PhoneNumberUtil.getInstance().parse(change.getControlNewText(), getSelectedCountry().iso2Code);
-//                        String national = PhoneNumberUtil.getInstance().format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
-//                        String international = PhoneNumberUtil.getInstance().format(number, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
-//                        String e164 = PhoneNumberUtil.getInstance().format(number, PhoneNumberUtil.PhoneNumberFormat.E164);
-//                        System.out.println("national number     : " + national);
-//                        System.out.println("international number: " + international);
-//                        System.out.println("e164 number         : " + e164);
-//                        setText(international);
-//                    } catch (NumberParseException e) {
-//                    }
-//                }
-//            }
-//
-//            if (change.isContentChange()) {
-//                if (country == null) {
-//                    resolveCountry(change);
-//                }
-//            }
-//
-//            return change;
-//        }));
 
         comboBox = new ComboBox<>() {
             @Override
@@ -211,17 +176,23 @@ public class PhoneNumberField extends CustomTextField {
             }
         });
 
-        InvalidationListener updateSampleListener = it -> updatePromptTextWithExampleNumber();
-        showExampleNumbersProperty().addListener(updateSampleListener);
-        expectedPhoneNumberTypeProperty().addListener(updateSampleListener);
-        selectedCountryProperty().addListener(updateSampleListener);
+        InvalidationListener updatePromptListener = it -> updatePromptTextWithExampleNumber();
+        showExampleNumbersProperty().addListener(updatePromptListener);
+        expectedPhoneNumberTypeProperty().addListener(updatePromptListener);
+        selectedCountryProperty().addListener(updatePromptListener);
+        countryCodeVisibleProperty().addListener(updatePromptListener);
 
         selectedCountryProperty().addListener((obs, oldCountry, newCountry) -> {
             // Important to execute, or we end up with partial country codes, e.g. "+4" when
             // the user deletes numbers via backspace.
             if (newCountry == null) {
-                Platform.runLater(() -> {
-                    setText(null);
+                runSafe(() -> setText(""));
+            } else {
+                runSafe(() -> {
+                    if (isCountryCodeVisible()) {
+                        setText(newCountry.countryCodePrefix());
+                        positionCaret(newCountry.countryCodePrefix().length());
+                    }
                 });
             }
         });
@@ -259,52 +230,136 @@ public class PhoneNumberField extends CustomTextField {
 
         validProperty().addListener(it -> updateValidPseudoState());
         updateValidPseudoState();
+
+        InvalidationListener formattingListener = it -> format();
+        textProperty().addListener(formattingListener);
+        countryCodeVisibleProperty().addListener(formattingListener);
+        expectedPhoneNumberTypeProperty().addListener(formattingListener);
+
+        phoneNumberProperty().addListener(it -> setValid(PhoneNumberUtil.getInstance().isValidNumber(getPhoneNumber())));
     }
 
-    protected Skin<?> createDefaultSkin() {
+    private boolean formattingText = false;
 
-        return new CustomTextFieldSkin(this) {
+    private synchronized void format() {
+        if (formattingText) {
+            return;
+        }
+        formattingText = true;
+        try {
+            doFormat(getText());
+        } finally {
+            formattingText = false;
+        }
+    }
 
-            public ObjectProperty<Node> leftProperty() {
-                return leftProperty();
+    private void runSafe(Runnable runnabe) {
+        Platform.runLater(() -> {
+            formattingText = true;
+            try {
+                runnabe.run();
+            } finally {
+                formattingText = false;
+            }
+        });
+    }
+
+    private void doFormat(String txt) {
+        System.out.println("going in: " + txt);
+
+        if (txt != null) {
+
+            if (txt.length() == 1 && Character.isLetter(txt.charAt(0))) {
+                // single character entered as part of country search in dropdown ... ignore it
+                runSafe(() -> setText(""));
+                return;
             }
 
-            public ObjectProperty<Node> rightProperty() {
-                return rightProperty();
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < txt.length(); i++) {
+                char c = txt.charAt(i);
+                if (c == '+' || Character.isDigit(c) || c == '(' || c == ')' || c == '-') {
+                    sb.append(c);
+                }
             }
 
-            @Override
-            protected String maskText(String txt) {
-                if (getSelectedCountry() != null) {
-                    try {
-                        String result = "";
-                        AsYouTypeFormatter formatter = PhoneNumberUtil.getInstance().getAsYouTypeFormatter(getSelectedCountry().iso2Code);
-                        for (int i = 0; i < txt.length(); i++) {
-                            result = formatter.inputDigitAndRememberPosition(txt.charAt(i));
-                        }
-
-                        System.out.println("result: " + result);
-                        Phonenumber.PhoneNumber number = PhoneNumberUtil.getInstance().parse(result, getSelectedCountry().iso2Code);
-                        String national = PhoneNumberUtil.getInstance().format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
-                        String international = PhoneNumberUtil.getInstance().format(number, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
-                        String e164 = PhoneNumberUtil.getInstance().format(number, PhoneNumberUtil.PhoneNumberFormat.E164);
-                        System.out.println("national number     : " + national);
-                        System.out.println("international number: " + international);
-                        System.out.println("e164 number         : " + e164);
-                        setText(international);
-                        return international;
-                    } catch (NumberParseException e) {
-                    }
-                } else {
-                    Country country = resolver.call(txt);
-                    if (country != null) {
-                        setSelectedCountry(country);
+            Country country = getSelectedCountry();
+            if (country != null) {
+                if (isCountryCodeVisible()) {
+                    Country maybeNewCountry = resolver.call(txt);
+                    if (!Objects.equals(maybeNewCountry, country)) {
+                        setSelectedCountry(maybeNewCountry);
+                        return;
                     }
                 }
 
-                return txt;
+                txt = sb.toString();
+
+                PhoneNumberUtil util = PhoneNumberUtil.getInstance();
+//                String countryCodePrefix = country.countryCodePrefix();
+//
+//                String nddPrefix = util.getNddPrefixForRegion(country.iso2Code, true);
+//
+//                if (isCountryCodeVisible()) {
+//                    // the user might have typed the area prefix, e.g. "0" in Germany or "1" in the USA. For further
+//                    // formatting we can ignore it, hence removing it from the parsing input
+//                    if (nddPrefix != null && txt.startsWith(nddPrefix)) {
+//                        txt = txt.substring(nddPrefix.length());
+//                    }
+//
+//                    if (!txt.startsWith(countryCodePrefix)) {
+//                        txt = countryCodePrefix + txt;
+//                    }
+//                }
+
+                // simulate the typing of the user
+                String result = "";
+                AsYouTypeFormatter formatter = util.getAsYouTypeFormatter(country.iso2Code);
+                for (int i = 0; i < txt.length(); i++) {
+                    result = formatter.inputDigit(txt.charAt(i));
+                }
+
+                final String fResult = result;
+                runSafe(() -> {
+                    int caretPosition = getCaretPosition();
+                    int oldLength = getText().length();
+                    setText(fResult);
+                    if (oldLength + 1 < fResult.length()) {
+                        positionCaret(caretPosition + 1);
+                    } else {
+                        positionCaret(caretPosition);
+                    }
+                });
+
+                try {
+                    Phonenumber.PhoneNumber number = util.parse(txt, country.iso2Code);
+                    setPhoneNumber(number);
+                    setNationalPhoneNumber(util.format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
+                    setInternationalPhoneNumber(util.format(number, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
+                    setE164PhoneNumber(util.format(number, PhoneNumberUtil.PhoneNumberFormat.E164));
+                } catch (NumberParseException e) {
+                    errorType.set(e.getErrorType());
+                }
+
+//                if (!isCountryCodeVisible() && result.startsWith(countryCodePrefix)) {
+//                    result = result.substring(countryCodePrefix.length());
+//                }
+
+            } else {
+                Country resolvedCountry = resolver.call(txt);
+                if (resolvedCountry != null) {
+                    setSelectedCountry(resolvedCountry);
+                    if (!isCountryCodeVisible()) {
+                        /*
+                         * The field is not configured to show the country code, but the user just entered it,
+                         * so let's get rid of it, now that we found a matching country.
+                         */
+                        runSafe(() -> setText(""));
+                    }
+                }
             }
-        };
+        }
     }
 
     private void updateCountryList() {
@@ -333,6 +388,12 @@ public class PhoneNumberField extends CustomTextField {
         }
     }
 
+    @Override
+    public void clear() {
+        super.clear();
+        setSelectedCountry(null);
+    }
+
     private void showCountry(Country country) {
         if (!comboBox.isShowing()) {
             comboBox.show();
@@ -344,8 +405,8 @@ public class PhoneNumberField extends CustomTextField {
         listView.requestFocus();
 
         if (country != null) {
-            listView.scrollTo(country);
             listView.getSelectionModel().select(country);
+            listView.scrollTo(country);
         }
     }
 
@@ -361,7 +422,11 @@ public class PhoneNumberField extends CustomTextField {
                     sampleNumber = phoneNumberUtil.getExampleNumberForType(getSelectedCountry().iso2Code(), getExpectedPhoneNumberType());
                 }
                 if (sampleNumber != null) {
-                    setPromptText(format(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.E164), getSelectedCountry()));
+                    if (isCountryCodeVisible()) {
+                        setPromptText(format(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL), getSelectedCountry()));
+                    } else {
+                        setPromptText(format(phoneNumberUtil.format(sampleNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL), getSelectedCountry()));
+                    }
                 } else {
                     setPromptText("");
                 }
@@ -399,51 +464,6 @@ public class PhoneNumberField extends CustomTextField {
         }
     }
 
-    // VALUES
-
-    private final StringProperty rawPhoneNumber = new SimpleStringProperty(this, "rawPhoneNumber") {
-        private boolean selfUpdate;
-
-        @Override
-        public void set(String newRawPhoneNumber) {
-            errorType.set(null);
-
-            if (selfUpdate) {
-                return;
-            }
-
-            try {
-                selfUpdate = true;
-
-                // Set the value first, so that the binding will be triggered
-                super.set(newRawPhoneNumber);
-
-                // Resolve all dependencies out of the raw phone number
-                Country country = resolver.call(newRawPhoneNumber);
-
-                if (country != null) {
-                    setSelectedCountry(country);
-
-                    try {
-                        Phonenumber.PhoneNumber number = phoneNumberUtil.parse(newRawPhoneNumber, country.iso2Code());
-                        setPhoneNumber(number);
-                    } catch (NumberParseException e) {
-                        errorType.set(e.getErrorType());
-                        setPhoneNumber(null);
-                    } catch (Exception e) {
-                        setPhoneNumber(null);
-                    }
-                } else {
-                    setSelectedCountry(null);
-                    setPhoneNumber(null);
-                }
-
-            } finally {
-                selfUpdate = false;
-            }
-        }
-    };
-
     // ERROR TYPE
 
     private final ReadOnlyObjectWrapper<NumberParseException.ErrorType> errorType = new ReadOnlyObjectWrapper<>(this, "errorType");
@@ -462,9 +482,6 @@ public class PhoneNumberField extends CustomTextField {
     public final ReadOnlyObjectProperty<NumberParseException.ErrorType> errorTypeProperty() {
         return errorType.getReadOnlyProperty();
     }
-
-    // RAW PHONE NUMBER
-
 
     // SELECTED COUNTRY
 
@@ -506,12 +523,31 @@ public class PhoneNumberField extends CustomTextField {
         selectedCountryProperty().set(selectedCountry);
     }
 
+    // INTERNATIONAL PHONE NUMBER
+
+    private final ReadOnlyStringWrapper internationalPhoneNumber = new ReadOnlyStringWrapper(this, "internationalPhoneNumber");
+
+    public final String getInternationalPhoneNumber() {
+        return internationalPhoneNumber.get();
+    }
+
+    /**
+     * The {@link #phoneNumberProperty() phone number} formatted as an international number including the country code.
+     */
+    public final ReadOnlyStringWrapper internationalPhoneNumberProperty() {
+        return internationalPhoneNumber;
+    }
+
+    public final void setInternationalPhoneNumber(String internationalPhoneNumber) {
+        this.internationalPhoneNumber.set(internationalPhoneNumber);
+    }
+
     // NATIONAL PHONE NUMBER
 
     private final ReadOnlyStringWrapper nationalPhoneNumber = new ReadOnlyStringWrapper(this, "nationalPhoneNumber");
 
     /**
-     * @return The {@link #phoneNumberProperty() phone number} formatted as a national number without the country code.
+     * The {@link #phoneNumberProperty() phone number} formatted as a national number without the country code.
      */
     public final ReadOnlyStringProperty nationalPhoneNumberProperty() {
         return nationalPhoneNumber.getReadOnlyProperty();
@@ -692,7 +728,7 @@ public class PhoneNumberField extends CustomTextField {
 
     // COUNTRY CODE VISIBLE
 
-    private final BooleanProperty countryCodeVisible = new SimpleBooleanProperty(this, "countryCodeVisible");
+    private final BooleanProperty countryCodeVisible = new SimpleBooleanProperty(this, "countryCodeVisible", false);
 
     /**
      * @return Determines if the country code stays visible in the field or if it gets removed as soon as
@@ -1058,22 +1094,6 @@ public class PhoneNumberField extends CustomTextField {
 
     }
 
-    private void resolveCountry(TextFormatter.Change change) {
-        Country country = resolver.call(change.getControlNewText());
-        if (country != null) {
-            setSelectedCountry(country);
-            if (!isCountryCodeVisible()) {
-                Platform.runLater(() -> {
-                    setText(Optional.ofNullable(country.defaultAreaCode()).map(String::valueOf).orElse(""));
-                    change.setText("");
-                    change.setCaretPosition(0);
-                    change.setAnchor(0);
-                    change.setRange(0, 0);
-                });
-            }
-        }
-    }
-
     private String format(String text, Country country) {
         if (text == null || text.isEmpty() || country == null) {
             return "";
@@ -1091,26 +1111,6 @@ public class PhoneNumberField extends CustomTextField {
         }
 
         return formattedNumber.substring(country.countryCodePrefix().length()).trim();
-    }
-
-    private String undoFormat(String formattedPhoneNumber, Country country) {
-        StringBuilder rawPhoneNumber = new StringBuilder();
-
-        if (formattedPhoneNumber != null && !formattedPhoneNumber.isEmpty()) {
-            for (char c : formattedPhoneNumber.toCharArray()) {
-                if (Character.isDigit(c)) {
-                    rawPhoneNumber.append(c);
-                }
-            }
-        }
-
-        if (!isCountryCodeVisible()) {
-            rawPhoneNumber.insert(0, country.countryCodePrefix());
-        } else {
-            rawPhoneNumber.insert(0, "+");
-        }
-
-        return rawPhoneNumber.toString();
     }
 
     /**
