@@ -1,18 +1,20 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
+import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Separator;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.converter.DateTimeStringConverter;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class SinglePhoneNumberFieldApp extends Application {
 
@@ -24,7 +26,7 @@ public class SinglePhoneNumberFieldApp extends Application {
 
         PhoneNumberField field = new PhoneNumberField();
         vBox.getChildren().addAll(
-            PhoneNumberFieldSamples.buildSample("Phone Number Field", "A configurable field for entering international phone numbers.", field)
+                PhoneNumberFieldSamples.buildSample("Phone Number Field", "A configurable field for entering international phone numbers.", field)
         );
 
         Button clearButton = new Button("Clear");
@@ -53,7 +55,25 @@ public class SinglePhoneNumberFieldApp extends Application {
         countryBox.getItems().setAll(PhoneNumberField.Country.values());
         countryBox.valueProperty().bindBidirectional(field.selectedCountryProperty());
 
-        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox);
+        Button loadSwissNumber = new Button("Load +41798002320");
+        loadSwissNumber.setOnAction(evt -> {
+            try {
+                field.load("+410798002320");
+            } catch (NumberParseException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        Button loadUSNumber = new Button("Load +12143456789");
+        loadUSNumber.setOnAction(evt -> {
+            try {
+                field.load("+12143456789");
+            } catch (NumberParseException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox, loadSwissNumber, loadUSNumber);
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(vBox);
