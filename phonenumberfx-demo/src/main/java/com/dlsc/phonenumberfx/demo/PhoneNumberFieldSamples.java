@@ -101,16 +101,6 @@ public final class PhoneNumberFieldSamples {
         return buildSample(title, description, field);
     }
 
-    public static Node buildCountryCodeVisibleSample() {
-        PhoneNumberField field = new PhoneNumberField();
-        field.setCountryCodeVisible(true);
-
-        String title = "Country Code Visible";
-        String description = "Makes the country code always visible in the text field.";
-
-        return buildSample(title, description, field);
-    }
-
     public static Node buildSample(String title, String description, PhoneNumberField field) {
         Label titleLabel = new Label(title);
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 1.4em;");
@@ -138,12 +128,14 @@ public final class PhoneNumberFieldSamples {
         PhoneNumberLabel phoneNumberLabel = new PhoneNumberLabel();
         phoneNumberLabel.phoneNumberProperty().bind(field.e164PhoneNumberProperty());
 
-        addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
         addField(rightBox, "Text", field.textProperty());
+        addField(rightBox, "Value", field.valueProperty());
+        addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
         addField(rightBox, "International Format", field.internationalPhoneNumberProperty());
         addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
+        addField(rightBox, "Error Type", field.errorTypeProperty());
         addField(rightBox, "Valid", field.validProperty());
 
         HBox hBox = new HBox(30);

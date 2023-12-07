@@ -5,14 +5,15 @@
 }
 
 .phone-number-field > .left-pane {
+    -fx-padding: 0px;
 }
 
 .phone-number-field > .left-pane > .left-box {
 }
 
 .phone-number-field > .left-pane > .left-box > .country-code-prefix-label {
-    -fx-font-weight: bold;
     -fx-padding: 0px 0px 0px 5px;
+    -fx-translate-x: 5px;
 }
 
 .phone-number-field > .left-pane > .left-box > .combo-box {

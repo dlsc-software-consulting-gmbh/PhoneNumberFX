@@ -8,9 +8,11 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.converter.DateTimeStringConverter;
+import org.scenicview.ScenicView;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -35,7 +37,7 @@ public class SinglePhoneNumberFieldApp extends Application {
         CheckBox showExampleBox = new CheckBox("Show example number for selected country");
         showExampleBox.selectedProperty().bindBidirectional(field.showExampleNumbersProperty());
 
-        CheckBox countryCodeVisibleBox = new CheckBox("Show country code as part of number");
+        CheckBox countryCodeVisibleBox = new CheckBox("Show country code");
         countryCodeVisibleBox.selectedProperty().bindBidirectional(field.countryCodeVisibleProperty());
 
         CheckBox disableCountryCodeBox = new CheckBox("Disable country dropdown");
@@ -55,34 +57,33 @@ public class SinglePhoneNumberFieldApp extends Application {
         countryBox.getItems().setAll(PhoneNumberField.Country.values());
         countryBox.valueProperty().bindBidirectional(field.selectedCountryProperty());
 
-        Button loadSwissNumber = new Button("Load +41798002320");
-        loadSwissNumber.setOnAction(evt -> {
-            try {
-                field.load("+410798002320");
-            } catch (NumberParseException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        Button loadSwissNumber = new Button("Swiss number: +41798002320");
+        loadSwissNumber.setOnAction(evt -> field.setValue("+410798002320"));
 
-        Button loadUSNumber = new Button("Load +12143456789");
-        loadUSNumber.setOnAction(evt -> {
-            try {
-                field.load("+12143456789");
-            } catch (NumberParseException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        Button loadUSNumber1 = new Button("Canadian number: +15871234567");
+        loadUSNumber1.setOnAction(evt -> field.setValue("+15871234567"));
 
-        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox, loadSwissNumber, loadUSNumber);
+        Button loadUSNumber2 = new Button("White house: +12024561111");
+        loadUSNumber2.setOnAction(evt -> field.setValue("+12024561111"));
+
+        Button loadBadly = new Button("Bad input: 2024561111");
+        loadBadly.setOnAction(evt -> field.setValue("2024561111"));
+
+        HBox loaderBox = new HBox(10, loadSwissNumber, loadUSNumber1, loadUSNumber2, loadBadly);
+        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox, loaderBox);
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(vBox);
 
+        Scene scene = new Scene(scrollPane);
+
         stage.setTitle("PhoneNumberField");
-        stage.setScene(new Scene(scrollPane));
+        stage.setScene(scene);
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();
+
+        ScenicView.show(scene);
     }
 
     public static void main(String[] args) {

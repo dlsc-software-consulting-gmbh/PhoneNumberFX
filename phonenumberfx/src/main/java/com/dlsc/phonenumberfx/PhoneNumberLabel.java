@@ -93,7 +93,7 @@ public class PhoneNumberLabel extends Label {
                 ErrorType errorType = e.getErrorType();
                 if (errorType != null) {
                     this.errorType.set(errorType);
-                    setTooltip(new Tooltip(getConverter().toString(errorType)));
+                    setTooltip(new Tooltip(getErrorTypeConverter().toString(errorType)));
                 } else {
                     setTooltip(new Tooltip(newRawPhoneNumber));
                 }
@@ -121,7 +121,7 @@ public class PhoneNumberLabel extends Label {
 
     // STRING CONVERTER
 
-    private final ObjectProperty<StringConverter<ErrorType>> converter = new SimpleObjectProperty<>(this, "converter", new StringConverter<>() {
+    private final ObjectProperty<StringConverter<ErrorType>> errorTypeConverter = new SimpleObjectProperty<>(this, "errorTypeConverter", new StringConverter<>() {
 
         @Override
         public String toString(ErrorType errorType) {
@@ -147,8 +147,8 @@ public class PhoneNumberLabel extends Label {
         }
     });
 
-    public StringConverter<ErrorType> getConverter() {
-        return converter.get();
+    public StringConverter<ErrorType> getErrorTypeConverter() {
+        return errorTypeConverter.get();
     }
 
     /**
@@ -157,12 +157,12 @@ public class PhoneNumberLabel extends Label {
      *
      * @return the property that represents the converter for the error type
      */
-    public ObjectProperty<StringConverter<ErrorType>> converterProperty() {
-        return converter;
+    public ObjectProperty<StringConverter<ErrorType>> errorTypeConverterProperty() {
+        return errorTypeConverter;
     }
 
-    public void setConverter(StringConverter<ErrorType> converter) {
-        this.converter.set(converter);
+    public void setErrorTypeConverter(StringConverter<ErrorType> errorTypeConverter) {
+        this.errorTypeConverter.set(errorTypeConverter);
     }
 
     // ERROR TYPE

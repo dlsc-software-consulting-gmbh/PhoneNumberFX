@@ -27,9 +27,7 @@ public class PhoneNumberFieldApp extends Application {
             new Separator(),
             PhoneNumberFieldSamples.buildDisabledCountrySelectorSample(),
             new Separator(),
-            PhoneNumberFieldSamples.buildExpectedPhoneNumberTypeSample(),
-            new Separator(),
-            PhoneNumberFieldSamples.buildCountryCodeVisibleSample()
+            PhoneNumberFieldSamples.buildExpectedPhoneNumberTypeSample()
         );
 
         ScrollPane scrollPane = new ScrollPane();
