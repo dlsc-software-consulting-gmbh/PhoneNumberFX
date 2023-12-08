@@ -82,8 +82,6 @@ public class SinglePhoneNumberFieldApp extends Application {
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();
-
-        ScenicView.show(scene);
     }
 
     public static void main(String[] args) {

@@ -5,6 +5,7 @@ import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.NumberParseException.ErrorType;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.*;
 import javafx.css.PseudoClass;
 import javafx.scene.control.*;
@@ -15,8 +16,8 @@ import java.util.Objects;
 
 /**
  * A control for displaying a phone number in a formatted way based on a raw number string.
- * 
- * @see #setPhoneNumber(String)
+ *
+ * @see #setValue(String)
  */
 public class PhoneNumberLabel extends Label {
 
@@ -47,44 +48,48 @@ public class PhoneNumberLabel extends Label {
         textProperty().addListener(it -> {
             if (!updatingText) {
                 // somebody called setText(...) instead of setRawPhoneNumber(...)
-                setPhoneNumber(getText());
+                setValue(getText());
             }
         });
 
-        phoneNumber.addListener((obs, oldRawPhoneNumber, newRawPhoneNumber) -> {
-            updatingText = true;
+        InvalidationListener updateListener = it -> {
+            String newRawPhoneNumber = getValue();
 
+            updatingText = true;
             errorType.set(null);
+
+            Country country = getCountry();
+            if (country == null) {
+                country = Country.ofDefaultLocale();
+            }
 
             try {
                 Phonenumber.PhoneNumber phoneNumber;
 
-                if (getCountry() != null) {
-                    phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, getCountry().iso2Code());
+                e164PhoneNumber.set(null);
+                nationalPhoneNumber.set(null);
+                internationalPhoneNumber.set(null);
 
-                    e164PhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164));
-                    nationalPhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
+                phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, country.iso2Code());
 
-                    switch (getStrategy()) {
-                        case NATIONAL_FOR_OWN_COUNTRY_ONLY:
-                            if (phoneNumber.getCountryCode() == getCountry().countryCode()) {
-                                setText(getNationalPhoneNumber());
-                            } else {
-                                setText(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
-                            }
-                            break;
-                        case ALWAYS_DISPLAY_INTERNATIONAL:
-                            setText(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
-                            break;
-                        case ALWAYS_DISPLAY_NATIONAL:
-                            setText(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
-                            break;
-                    }
-                } else {
-                    phoneNumber = phoneNumberUtil.parse(newRawPhoneNumber, Country.UNITED_STATES.iso2Code()); // well, USA is prefix +1 :-)
-                    setText(getPhoneNumber());
-                    e164PhoneNumber.set("");
-                    nationalPhoneNumber.set("");
+                e164PhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164));
+                nationalPhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
+                internationalPhoneNumber.set(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
+
+                switch (getStrategy()) {
+                    case NATIONAL_FOR_OWN_COUNTRY_ONLY:
+                        if (phoneNumber.getCountryCode() == country.countryCode()) {
+                            setText(getNationalPhoneNumber());
+                        } else {
+                            setText(getInternationalPhoneNumber());
+                        }
+                        break;
+                    case ALWAYS_DISPLAY_INTERNATIONAL:
+                        setText(getInternationalPhoneNumber());
+                        break;
+                    case ALWAYS_DISPLAY_NATIONAL:
+                        setText(getNationalPhoneNumber());
+                        break;
                 }
 
                 setTooltip(new Tooltip(phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL)));
@@ -98,18 +103,19 @@ public class PhoneNumberLabel extends Label {
                     setTooltip(new Tooltip(newRawPhoneNumber));
                 }
 
-                if (newRawPhoneNumber != null && newRawPhoneNumber.startsWith(getCountry().countryCodePrefix())) {
-                    newRawPhoneNumber = newRawPhoneNumber.substring(getCountry().countryCodePrefix().length());
+                if (newRawPhoneNumber != null && newRawPhoneNumber.startsWith(country.countryCodePrefix())) {
+                    newRawPhoneNumber = newRawPhoneNumber.substring(country.countryCodePrefix().length());
                 }
 
-                e164PhoneNumber.set("");
-                nationalPhoneNumber.set("");
                 setText(newRawPhoneNumber);
                 setValid(false);
             } finally {
                 updatingText = false;
             }
-        });
+        };
+
+        countryProperty().addListener(updateListener);
+        value.addListener(updateListener);
 
         validProperty().addListener(it -> updateValidPseudoState());
         updateValidPseudoState();
@@ -186,7 +192,7 @@ public class PhoneNumberLabel extends Label {
 
     /**
      * Enumeration representing different strategies for displaying phone numbers.
-     * 
+     *
      * @see #setStrategy(Strategy)
      */
     public enum Strategy {
@@ -232,23 +238,23 @@ public class PhoneNumberLabel extends Label {
 
     //  PHONE NUMBER
 
-    private final StringProperty phoneNumber = new SimpleStringProperty(this, "phoneNumber");
+    private final StringProperty value = new SimpleStringProperty(this, "value");
 
     /**
-     * The raw phone number corresponding exactly to what the user typed in, including the (+) sign appended at the
+     * The text corresponding exactly to what the user typed in, including the (+) sign at the
      * beginning. This value can be a valid E164 formatted number. The label will do its best to properly format the
      * given number.
      */
-    public final StringProperty phoneNumberProperty() {
-        return phoneNumber;
+    public final StringProperty valueProperty() {
+        return value;
     }
 
-    public final String getPhoneNumber() {
-        return phoneNumberProperty().get();
+    public final String getValue() {
+        return valueProperty().get();
     }
 
-    public final void setPhoneNumber(String phoneNumber) {
-        phoneNumberProperty().set(phoneNumber);
+    public final void setValue(String value) {
+        valueProperty().set(value);
     }
 
     // COUNTRY
@@ -288,6 +294,25 @@ public class PhoneNumberLabel extends Label {
 
     private void setNationalPhoneNumber(String nationalPhoneNumber) {
         this.nationalPhoneNumber.set(nationalPhoneNumber);
+    }
+
+    // NATIONAL PHONE NUMBER
+
+    private final ReadOnlyStringWrapper internationalPhoneNumber = new ReadOnlyStringWrapper(this, "internationalPhoneNumber");
+
+    /**
+     * A representation of the phone number in the national format of the specified country.
+     */
+    public final ReadOnlyStringProperty internationalPhoneNumberProperty() {
+        return internationalPhoneNumber.getReadOnlyProperty();
+    }
+
+    public final String getInternationalPhoneNumber() {
+        return internationalPhoneNumber.get();
+    }
+
+    private void setInternationalPhoneNumber(String nationalPhoneNumber) {
+        this.internationalPhoneNumber.set(nationalPhoneNumber);
     }
 
     // E164 PHONE NUMBER

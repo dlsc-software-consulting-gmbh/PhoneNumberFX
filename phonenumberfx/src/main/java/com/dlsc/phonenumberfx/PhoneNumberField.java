@@ -202,6 +202,7 @@ public class PhoneNumberField extends CustomTextField {
             internationalPhoneNumber.set(null);
             e164PhoneNumber.set(null);
             valid.set(false);
+            errorType.set(null);
 
             Country country = getSelectedCountry();
             if (country != null) {
@@ -290,6 +291,7 @@ public class PhoneNumberField extends CustomTextField {
         };
 
         StringConverter<String> converter = new StringConverter<>() {
+
             @Override
             public String toString(String value) {
                 if (value != null && !value.trim().isEmpty()) {
@@ -368,7 +370,10 @@ public class PhoneNumberField extends CustomTextField {
     @Override
     public void clear() {
         super.clear();
-        setSelectedCountry(null);
+
+        if (isShowCountryDropdown() || isCountryCodeVisible()) {
+            setSelectedCountry(null);
+        }
     }
 
     private void showCountry(Country country) {
