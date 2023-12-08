@@ -49,6 +49,9 @@ public class SinglePhoneNumberFieldApp extends Application {
         CheckBox editableBox = new CheckBox("Editable");
         editableBox.selectedProperty().bindBidirectional(field.editableProperty());
 
+        CheckBox liveFormatting = new CheckBox("Live Formatting");
+        liveFormatting.selectedProperty().bindBidirectional(field.liveFormattingProperty());
+
         ComboBox<PhoneNumberUtil.PhoneNumberType> expectedTypeBox = new ComboBox<>();
         expectedTypeBox.getItems().setAll(PhoneNumberUtil.PhoneNumberType.values());
         expectedTypeBox.valueProperty().bindBidirectional(field.expectedPhoneNumberTypeProperty());
@@ -70,7 +73,7 @@ public class SinglePhoneNumberFieldApp extends Application {
         loadBadly.setOnAction(evt -> field.setValue("2024561111"));
 
         HBox loaderBox = new HBox(10, loadSwissNumber, loadUSNumber1, loadUSNumber2, loadBadly);
-        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox, loaderBox);
+        vBox.getChildren().addAll(new Separator(), clearButton, countryBox, expectedTypeBox, liveFormatting, showExampleBox, countryCodeVisibleBox, showCountryCodeBox, disableCountryCodeBox, editableBox, loaderBox);
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(vBox);

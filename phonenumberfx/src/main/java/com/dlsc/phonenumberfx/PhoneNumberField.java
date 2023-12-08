@@ -334,11 +334,41 @@ public class PhoneNumberField extends CustomTextField {
         TextFormatter<String> formatter = new TextFormatter<>(converter, null, filter);
         formatter.valueProperty().bindBidirectional(valueProperty());
 
+        textProperty().addListener(it -> {
+            if (isLiveFormatting()) {
+                if (updating) {
+                    return;
+                }
+                updating = true;
+                try {
+                    commitValue();
+                } finally {
+                    updating = false;
+                }
+            }
+        });
+
         setTextFormatter(formatter);
 
         if (value != null && !value.trim().isEmpty()) {
             setValue(value);
         }
+    }
+
+    private boolean updating = false;
+
+    private final BooleanProperty liveFormatting = new SimpleBooleanProperty(this, "liveFormatting", false);
+
+    public final boolean isLiveFormatting() {
+        return liveFormatting.get();
+    }
+
+    public final BooleanProperty liveFormattingProperty() {
+        return liveFormatting;
+    }
+
+    public final void setLiveFormatting(boolean liveFormatting) {
+        this.liveFormatting.set(liveFormatting);
     }
 
     private void updateCountryList() {
