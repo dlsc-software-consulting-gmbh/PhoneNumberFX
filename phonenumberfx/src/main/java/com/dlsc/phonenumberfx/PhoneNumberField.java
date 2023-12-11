@@ -368,14 +368,15 @@ public class PhoneNumberField extends CustomTextField {
 
         textProperty().addListener(it -> {
             if (isLiveFormatting()) {
-                if (updating) {
-                    return;
-                }
-                updating = true;
-                try {
-                    commitValue();
-                } finally {
-                    updating = false;
+                if (!updating) {
+                    Platform.runLater(() -> {
+                        updating = true;
+                        try {
+                            doCommitValue();
+                        } finally {
+                            updating = false;
+                        }
+                    });
                 }
             }
         });
@@ -385,6 +386,10 @@ public class PhoneNumberField extends CustomTextField {
         if (value != null && !value.trim().isEmpty()) {
             setValue(value);
         }
+    }
+
+    private synchronized void doCommitValue() {
+        commitValue();
     }
 
     private boolean updating = false;
