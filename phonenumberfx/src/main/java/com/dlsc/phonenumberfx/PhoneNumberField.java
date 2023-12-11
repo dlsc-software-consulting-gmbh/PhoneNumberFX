@@ -294,21 +294,53 @@ public class PhoneNumberField extends CustomTextField {
 
             @Override
             public String toString(String value) {
+                System.out.println("value = " + value);
                 if (value != null && !value.trim().isEmpty()) {
                     try {
                         String regionCode = null;
+                        System.out.println("selected country: " + getSelectedCountry());
                         if (getSelectedCountry() != null) {
                             regionCode = getSelectedCountry().iso2Code();
                         }
-                        Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(value, regionCode);
-                        Country country = Country.ofPhoneNumber(phoneNumber);
-                        setSelectedCountry(country);
-                        if (country != null && isCountryCodeVisible()) {
-                            String prefix = country.countryCodePrefix();
-                            return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL).substring(prefix.length());
+                        if (regionCode == null) {
+                            return "";
                         }
-                        return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
+
+                        System.out.println("region code = " + regionCode);
+                        if (isLiveFormatting()) {
+                            System.out.println("live formatting");
+                            AsYouTypeFormatter asYouTypeFormatter = phoneNumberUtil.getAsYouTypeFormatter(regionCode);
+                            String result = "";
+                            for (int i = 0; i < value.length(); i++) {
+                                result = asYouTypeFormatter.inputDigit(value.charAt(i));
+                                System.out.println("as you type: " + result);
+                            }
+                            return result.substring(getSelectedCountry().countryCodePrefix().length()).trim();
+                        } else {
+                            Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(value, regionCode);
+                            Country country = Country.ofPhoneNumber(phoneNumber);
+                            System.out.println("country of phone number: " + country);
+                            setSelectedCountry(country);
+                            if (country != null && isCountryCodeVisible()) {
+                                if (phoneNumberUtil.isValidNumber(phoneNumber)) {
+                                    String prefix = country.countryCodePrefix();
+                                    System.out.println("returning international format");
+                                    return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL).substring(prefix.length()).trim();
+                                } else {
+                                    AsYouTypeFormatter asYouTypeFormatter = phoneNumberUtil.getAsYouTypeFormatter(country.iso2Code());
+                                    String result = "";
+                                    for (int i = 0; i < value.length(); i++) {
+                                        result = asYouTypeFormatter.inputDigit(value.charAt(i));
+                                        System.out.println("as you type: " + result);
+                                    }
+                                    return result.substring(country.countryCodePrefix().length()).trim();
+                                }
+                            }
+                            System.out.println("returning national format");
+                            return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
+                        }
                     } catch (NumberParseException e) {
+                        System.out.println("error");
                         errorType.set(e.getErrorType());
                     }
                 }
@@ -1072,7 +1104,6 @@ public class PhoneNumberField extends CustomTextField {
 
         public static Country ofCountryCodePrefix(String prefix) {
             int code = Integer.parseInt(prefix.substring(1)); // skip the "+"
-            System.out.println("code: " + code);
 
             // first try to find the country with no additional area codes, e.g. US = +1
             for (Country c : values()) {
@@ -1116,11 +1147,13 @@ public class PhoneNumberField extends CustomTextField {
                         }
                     }
                 } catch (NumberFormatException ex) {
-                    return null;
+                    // fallback strategy is to use the country code only and ignore national destination code
+                    return ofCountryCodePrefix("+" + code);
                 }
             }
 
-            return null;
+            // fallback strategy is to use the country code only
+            return ofCountryCodePrefix("+" + code);
         }
 
         private static boolean containsArea(Country c, int geoCode) {

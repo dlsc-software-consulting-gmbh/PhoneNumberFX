@@ -173,7 +173,11 @@ public final class PhoneNumberFieldSamples {
     }
 
     private static void addField(GridPane pane, String name, Node node) {
-        node.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+        if (node instanceof VBox) {
+            node.setStyle("-fx-border-color: black; -fx-border-width: 1px; -fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+        } else {
+            node.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+        }
         int row = pane.getRowCount();
         pane.add(new Label(name + ":"), 0, row);
         pane.add(node, 1, row);
