@@ -144,7 +144,7 @@ public final class PhoneNumberFieldSamples {
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
         addField(rightBox, "International Format", field.internationalPhoneNumberProperty());
         addField(rightBox, "PhoneNumberLabel", labelBox);
-        addField(rightBox, "Error Type", field.errorTypeProperty());
+        addField(rightBox, "Error Type", field.parsingErrorTypeProperty());
         addField(rightBox, "Valid", field.validProperty());
 
         HBox hBox = new HBox(30);

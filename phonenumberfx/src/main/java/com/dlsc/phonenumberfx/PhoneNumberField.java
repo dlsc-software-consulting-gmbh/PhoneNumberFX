@@ -191,8 +191,6 @@ public class PhoneNumberField extends CustomTextField {
 
         updatePromptTextWithExampleNumber();
 
-        selectedCountryProperty().addListener(it -> setText(""));
-
         showCountryDropdownProperty().addListener(it -> requestLayout()); // important
         countryCodeVisibleProperty().addListener(it -> requestLayout()); // important
 
@@ -202,12 +200,13 @@ public class PhoneNumberField extends CustomTextField {
             internationalPhoneNumber.set(null);
             e164PhoneNumber.set(null);
             valid.set(false);
-            errorType.set(null);
+            parsingErrorType.set(null);
 
-            Country country = getSelectedCountry();
-            if (country != null) {
+            if (newV != null && !newV.isEmpty()) {
+                String regionCode = getRegionCode(newV);
+
                 try {
-                    Phonenumber.PhoneNumber number = phoneNumberUtil.parse(newV, country.iso2Code());
+                    Phonenumber.PhoneNumber number = phoneNumberUtil.parse(newV, regionCode);
                     phoneNumber.set(number);
                     e164PhoneNumber.set(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.E164));
                     nationalPhoneNumber.set(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
@@ -215,13 +214,13 @@ public class PhoneNumberField extends CustomTextField {
                     valid.set(phoneNumberUtil.isValidNumber(number) && isExpectedTypeMatch(number));
                     setTooltip(new Tooltip(getE164PhoneNumber()));
                 } catch (NumberParseException e) {
-                    errorType.set(e.getErrorType());
+                    parsingErrorType.set(e.getErrorType());
                 }
             }
         });
 
-        errorTypeProperty().addListener(it -> {
-            ErrorType error = getErrorType();
+        parsingErrorTypeProperty().addListener(it -> {
+            ErrorType error = getParsingErrorType();
             if (error != null) {
                 StringConverter<ErrorType> converter = getErrorTypeConverter();
                 if (converter != null) {
@@ -261,22 +260,19 @@ public class PhoneNumberField extends CustomTextField {
             }
 
             if (!text.isEmpty()) {
-                // the user can specify a country via the keyboard but only when no country has been set, yet
-                if (getSelectedCountry() == null) {
-                    String controlNewText = c.getControlNewText();
-
-                    if (controlNewText.startsWith("+")) {
-                        if (controlNewText.length() > 1) {
-                            Country country = Country.ofCountryCodePrefix(controlNewText);
-                            System.out.println("country: " + country);
-                            if (country != null) {
-                                Platform.runLater(() -> setSelectedCountry(country));
-                            }
+                String controlNewText = c.getControlNewText();
+                if (controlNewText.startsWith("+")) {
+                    if (controlNewText.length() > 1) {
+                        Country country = Country.ofCountryCodePrefix(controlNewText);
+                        if (country != null) {
+                            Platform.runLater(() -> {
+                                setText("");
+                                setSelectedCountry(country);
+                            });
                         }
-                        return c;
                     }
 
-                    return null;
+                    return c;
                 }
 
                 char ch = text.charAt(0);
@@ -294,70 +290,71 @@ public class PhoneNumberField extends CustomTextField {
 
             @Override
             public String toString(String value) {
-                System.out.println("value = " + value);
                 if (value != null && !value.trim().isEmpty()) {
-                    try {
-                        String regionCode = null;
-                        System.out.println("selected country: " + getSelectedCountry());
-                        if (getSelectedCountry() != null) {
-                            regionCode = getSelectedCountry().iso2Code();
-                        }
-                        if (regionCode == null) {
-                            return "";
-                        }
+                    value = value.trim();
 
-                        System.out.println("region code = " + regionCode);
-                        if (isLiveFormatting()) {
-                            System.out.println("live formatting");
-                            AsYouTypeFormatter asYouTypeFormatter = phoneNumberUtil.getAsYouTypeFormatter(regionCode);
-                            String result = "";
-                            for (int i = 0; i < value.length(); i++) {
-                                result = asYouTypeFormatter.inputDigit(value.charAt(i));
-                                System.out.println("as you type: " + result);
-                            }
-                            return result.substring(getSelectedCountry().countryCodePrefix().length()).trim();
-                        } else {
-                            Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(value, regionCode);
-                            Country country = Country.ofPhoneNumber(phoneNumber);
-                            System.out.println("country of phone number: " + country);
-                            setSelectedCountry(country);
-                            if (country != null && isCountryCodeVisible()) {
-                                if (phoneNumberUtil.isValidNumber(phoneNumber)) {
-                                    String prefix = country.countryCodePrefix();
-                                    System.out.println("returning international format");
-                                    return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL).substring(prefix.length()).trim();
-                                } else {
-                                    AsYouTypeFormatter asYouTypeFormatter = phoneNumberUtil.getAsYouTypeFormatter(country.iso2Code());
-                                    String result = "";
-                                    for (int i = 0; i < value.length(); i++) {
-                                        result = asYouTypeFormatter.inputDigit(value.charAt(i));
-                                        System.out.println("as you type: " + result);
-                                    }
-                                    return result.substring(country.countryCodePrefix().length()).trim();
-                                }
-                            }
-                            System.out.println("returning national format");
-                            return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
-                        }
-                    } catch (NumberParseException e) {
-                        System.out.println("error");
-                        errorType.set(e.getErrorType());
+                    if (isLiveFormatting()) {
+                        return toStringLiveFormatting(value);
                     }
+
+                    return toStringOnCommitFormatting(value);
                 }
 
-                return "";
+                return value;
+            }
+
+            private String toStringLiveFormatting(String value) {
+                String regionCode = getRegionCode(value);
+                AsYouTypeFormatter asYouTypeFormatter = phoneNumberUtil.getAsYouTypeFormatter(regionCode);
+                String result = "";
+                for (int i = 0; i < value.length(); i++) {
+                    result = asYouTypeFormatter.inputDigit(value.charAt(i));
+                }
+
+                return result.substring(getSelectedCountry().countryCodePrefix().length()).trim();
+            }
+
+            private String toStringOnCommitFormatting(String value) {
+                String regionCode = getRegionCode(value);
+
+                try {
+                    Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(value, regionCode);
+
+                    Country country = Country.ofPhoneNumber(phoneNumber);
+                    setSelectedCountry(country);
+
+                    if (!phoneNumberUtil.isValidNumber(phoneNumber)) {
+                        return formatAsYouType(value, country);
+                    }
+
+                    // a valid number
+                    if (isCountryCodeVisible()) {
+                        // use the international formatting WITHOUT local prefix, e.g "0" in Germany
+                        String prefix = country.countryCodePrefix();
+                        return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL).substring(prefix.length()).trim();
+                    } else {
+                        // use the national formatting WITH local prefix, e.g "0" in Germany
+                        return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL);
+                    }
+                } catch (NumberParseException e) {
+                    // no-op
+                }
+
+                return value;
             }
 
             @Override
             public String fromString(String textFieldString) {
-                try {
-                    Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(textFieldString, getSelectedCountry().iso2Code());
-                    return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
-                } catch (NumberParseException e) {
-                    errorType.set(e.getErrorType());
+                if (getSelectedCountry() != null) {
+                    try {
+                        Phonenumber.PhoneNumber phoneNumber = phoneNumberUtil.parse(textFieldString, getSelectedCountry().iso2Code());
+                        return phoneNumberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
+                    } catch (NumberParseException e) {
+                        parsingErrorType.set(e.getErrorType());
+                    }
                 }
 
-                return "";
+                return null;
             }
         };
 
@@ -386,6 +383,36 @@ public class PhoneNumberField extends CustomTextField {
         if (value != null && !value.trim().isEmpty()) {
             setValue(value);
         }
+    }
+
+    private String formatAsYouType(String value, Country country) {
+        // not a valid number, yet, so let's use the AsYouType formatter
+        AsYouTypeFormatter asYouTypeFormatter = phoneNumberUtil.getAsYouTypeFormatter(country.iso2Code());
+        String result = "";
+        for (int i = 0; i < value.length(); i++) {
+            result = asYouTypeFormatter.inputDigit(value.charAt(i));
+        }
+        return result.substring(country.countryCodePrefix().length()).trim();
+    }
+
+    private String getRegionCode(String value) {
+        try {
+            if (value.startsWith("+")) {
+                Phonenumber.PhoneNumber number = PhoneNumberUtil.getInstance().parse(value, Country.ofDefaultLocale().iso2Code());
+                Country country = Country.ofPhoneNumber(number);
+                setSelectedCountry(country);
+                return country.iso2Code();
+            }
+        } catch (NumberParseException ex) {
+            // do nothing
+        }
+
+        Country country = getSelectedCountry();
+        if (country != null) {
+            return country.iso2Code();
+        }
+
+        return null;
     }
 
     private synchronized void doCommitValue() {
@@ -531,12 +558,12 @@ public class PhoneNumberField extends CustomTextField {
         }
     }
 
-    // ERROR TYPE
+    // PARSING ERROR TYPE
 
-    private final ReadOnlyObjectWrapper<ErrorType> errorType = new ReadOnlyObjectWrapper<>(this, "errorType");
+    private final ReadOnlyObjectWrapper<ErrorType> parsingErrorType = new ReadOnlyObjectWrapper<>(this, "parsingErrorType");
 
-    public final ErrorType getErrorType() {
-        return errorType.get();
+    public final ErrorType getParsingErrorType() {
+        return parsingErrorType.get();
     }
 
     /**
@@ -546,8 +573,8 @@ public class PhoneNumberField extends CustomTextField {
      *
      * @return the error type property
      */
-    public final ReadOnlyObjectProperty<ErrorType> errorTypeProperty() {
-        return errorType.getReadOnlyProperty();
+    public final ReadOnlyObjectProperty<ErrorType> parsingErrorTypeProperty() {
+        return parsingErrorType.getReadOnlyProperty();
     }
 
     // SELECTED COUNTRY
@@ -579,7 +606,7 @@ public class PhoneNumberField extends CustomTextField {
 
     /**
      * The value of the field is the information put into the field from the outside / from the
-     * application. The {@link #valueProperty() value property} is the model of the field.
+     * application. The value property is the model of the phone number field.
      *
      * @return the value of the field, which is the raw number passed into the field from the application
      */
@@ -875,7 +902,9 @@ public class PhoneNumberField extends CustomTextField {
         BURUNDI(257, "BI"),
         CAMBODIA(855, "KH"),
         CAMEROON(237, "CM"),
-        CANADA(1, "CA", 587, 250, 604, 778, 289, 905, 204, 514, 506, 709, 226, 519, 613, 705, 807, 819, 306),
+        CANADA(1, "CA", 204, 226, 236, 249, 250, 263, 289, 306, 343, 365, 367, 368, 403, 416, 418, 431, 437, 438, 450, 468,
+                474, 506, 514, 519, 548, 579, 581, 584, 587, 604, 613, 639, 647, 673, 683, 705, 709, 742, 753, 778, 780, 782,
+                807, 819, 825, 867, 873, 902, 905),
         CAPE_VERDE(238, "CV"),
         CAYMAN_ISLANDS(1, "KY", 345),
         CENTRAL_AFRICAN_REPUBLIC(236, "CF"),
@@ -1108,20 +1137,24 @@ public class PhoneNumberField extends CustomTextField {
         }
 
         public static Country ofCountryCodePrefix(String prefix) {
-            int code = Integer.parseInt(prefix.substring(1)); // skip the "+"
+            try {
+                int code = Integer.parseInt(prefix.substring(1)); // skip the "+"
 
-            // first try to find the country with no additional area codes, e.g. US = +1
-            for (Country c : values()) {
-                if (c.countryCode == code && c.areaCodes.length == 0) {
-                    return c;
+                // first try to find the country with no additional area codes, e.g. US = +1
+                for (Country c : values()) {
+                    if (c.countryCode == code && c.areaCodes.length == 0) {
+                        return c;
+                    }
                 }
-            }
 
-            // now find a country WITH area codes
-            for (Country c : values()) {
-                if (c.countryCode == code) {
-                    return c;
+                // now find a country WITH area codes
+                for (Country c : values()) {
+                    if (c.countryCode == code) {
+                        return c;
+                    }
                 }
+            } catch (NumberFormatException ex) {
+                // no-op
             }
 
             return null;
@@ -1213,106 +1246,7 @@ public class PhoneNumberField extends CustomTextField {
 
     }
 
-//    /**
-//     * For internal use only.
-//     */
-//    private final class CountryResolver implements Callback<String, Country> {
-//
-//        @Override
-//        public Country call(String phoneNumber) {
-//            if (phoneNumber == null || phoneNumber.isEmpty()) {
-//                return null;
-//            }
-//
-//            if (phoneNumber.startsWith("+")) {
-//                phoneNumber = phoneNumber.substring(1);
-//                if (phoneNumber.isEmpty()) {
-//                    return null;
-//                }
-//            }
-//
-//            TreeMap<Integer, List<Country>> scores = new TreeMap<>();
-//
-//            for (Country country : getAvailableCountries()) {
-//                int score = calculateScore(country, phoneNumber);
-//                if (score > 0) {
-//                    scores.computeIfAbsent(score, s -> new ArrayList<>()).add(country);
-//                }
-//            }
-//
-//            Map.Entry<Integer, List<Country>> highestScore = scores.lastEntry();
-//            if (highestScore == null) {
-//                return null;
-//            }
-//
-//            return inferBestMatch(highestScore.getValue());
-//        }
-//
-//        private int calculateScore(Country country, String phoneNumber) {
-//            String countryPrefix = String.valueOf(country.countryCode());
-//
-//            if (country.areaCodes().length == 0) {
-//                if (phoneNumber.startsWith(countryPrefix)) {
-//                    return 1;
-//                }
-//            } else {
-//                for (int areaCode : country.areaCodes()) {
-//                    String areaCodePrefix = countryPrefix + areaCode;
-//                    if (phoneNumber.startsWith(areaCodePrefix)) {
-//                        return 2;
-//                    }
-//                }
-//            }
-//
-//            return 0;
-//        }
-//
-//        private Country inferBestMatch(List<Country> matchingCountries) {
-//            Country code = null;
-//            if (matchingCountries.size() > 1) {
-//                // pick the country that is preferred
-//                for (Country c : matchingCountries) {
-//                    if (getPreferredCountries().contains(c)) {
-//                        code = c;
-//                        break;
-//                    }
-//                }
-//
-//                if (code == null) {
-//                    code = matchingCountries.get(matchingCountries.size() - 1);
-//                }
-//            } else {
-//                code = matchingCountries.get(0);
-//            }
-//            return code;
-//        }
-//    }
-
-    private final ObjectProperty<StringConverter<ErrorType>> errorTypeConverter = new SimpleObjectProperty<>(this, "errorTypeConverter", new StringConverter<>() {
-
-        @Override
-        public String toString(ErrorType errorType) {
-            if (errorType != null) {
-                switch (errorType) {
-                    case INVALID_COUNTRY_CODE:
-                        return "Invalid country code";
-                    case NOT_A_NUMBER:
-                        return "Invalid: not a number";
-                    case TOO_SHORT_AFTER_IDD:
-                    case TOO_SHORT_NSN:
-                        return "Invalid: too short / not enough digits";
-                    case TOO_LONG:
-                        return "Invalid: too long / too many digits";
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public ErrorType fromString(String string) {
-            return null;
-        }
-    });
+    private final ObjectProperty<StringConverter<ErrorType>> errorTypeConverter = new SimpleObjectProperty<>(this, "errorTypeConverter", new ErrorTypeConverter());
 
     public StringConverter<ErrorType> getErrorTypeConverter() {
         return errorTypeConverter.get();
@@ -1332,10 +1266,13 @@ public class PhoneNumberField extends CustomTextField {
         this.errorTypeConverter.set(errorTypeConverter);
     }
 
-    private class CountryCell extends ListCell<Country> {
+    public class CountryCell extends ListCell<Country> {
 
         private CountryCell() {
             getStyleClass().add("country-cell");
+
+            setOnMousePressed(evt -> setValue(""));
+            setOnTouchPressed(evt -> setValue(""));
         }
 
         @Override

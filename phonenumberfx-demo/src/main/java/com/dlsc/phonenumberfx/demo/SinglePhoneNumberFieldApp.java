@@ -63,7 +63,7 @@ public class SinglePhoneNumberFieldApp extends Application {
         Button loadSwissNumber = new Button("Swiss number: +41798002320");
         loadSwissNumber.setOnAction(evt -> field.setValue("+410798002320"));
 
-        Button loadUSNumber1 = new Button("Canadian number: +15871234567");
+        Button loadUSNumber1 = new Button("Canadian number: +15872223333");
         loadUSNumber1.setOnAction(evt -> field.setValue("+15871234567"));
 
         Button loadUSNumber2 = new Button("White house: +12024561111");
