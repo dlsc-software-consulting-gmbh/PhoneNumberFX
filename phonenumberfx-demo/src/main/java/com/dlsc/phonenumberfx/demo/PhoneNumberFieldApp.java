@@ -27,16 +27,14 @@ public class PhoneNumberFieldApp extends Application {
             new Separator(),
             PhoneNumberFieldSamples.buildDisabledCountrySelectorSample(),
             new Separator(),
-            PhoneNumberFieldSamples.buildExpectedPhoneNumberTypeSample(),
-            new Separator(),
-            PhoneNumberFieldSamples.buildCountryCodeVisibleSample()
+            PhoneNumberFieldSamples.buildExpectedPhoneNumberTypeSample()
         );
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(vBox);
 
         stage.setTitle("PhoneNumberField");
-        stage.setScene(new Scene(scrollPane, 900, 800));
+        stage.setScene(new Scene(scrollPane));
         stage.sizeToScene();
         stage.centerOnScreen();
         stage.show();
