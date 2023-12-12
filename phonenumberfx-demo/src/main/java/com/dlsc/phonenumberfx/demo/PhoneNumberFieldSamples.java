@@ -1,12 +1,14 @@
 package com.dlsc.phonenumberfx.demo;
 
 import com.dlsc.phonenumberfx.PhoneNumberField;
+import com.dlsc.phonenumberfx.PhoneNumberField.Country;
 import com.dlsc.phonenumberfx.PhoneNumberLabel;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -22,7 +24,7 @@ public final class PhoneNumberFieldSamples {
         if (c == null) {
             return null;
         }
-        PhoneNumberField.Country code = (PhoneNumberField.Country) c;
+        Country code = (Country) c;
         return "(" + code.phonePrefix() + ")" + code;
     };
 
@@ -41,7 +43,7 @@ public final class PhoneNumberFieldSamples {
 
     public static Node buildDefaultPrefilledSample() {
         PhoneNumberField field = new PhoneNumberField();
-        field.setRawPhoneNumber("+573003767182");
+        field.setText("+573003767182");
 
         String title = "Initial Value";
         String description = "A control with default settings and a value set through code.";
@@ -52,11 +54,11 @@ public final class PhoneNumberFieldSamples {
     public static Node buildCustomAvailableCountriesSample() {
         PhoneNumberField field = new PhoneNumberField();
         field.getAvailableCountries().setAll(
-            PhoneNumberField.Country.COLOMBIA,
-            PhoneNumberField.Country.GERMANY,
-            PhoneNumberField.Country.UNITED_STATES,
-            PhoneNumberField.Country.UNITED_KINGDOM,
-            PhoneNumberField.Country.SWITZERLAND);
+            Country.COLOMBIA,
+            Country.GERMANY,
+            Country.UNITED_STATES,
+            Country.UNITED_KINGDOM,
+            Country.SWITZERLAND);
 
         String title = "Available Countries (Customized)";
         String description = "A control with modified list of available countries.";
@@ -68,9 +70,9 @@ public final class PhoneNumberFieldSamples {
         PhoneNumberField field = new PhoneNumberField();
 
         field.getPreferredCountries().setAll(
-            PhoneNumberField.Country.SWITZERLAND,
-            PhoneNumberField.Country.GERMANY,
-            PhoneNumberField.Country.UNITED_KINGDOM);
+            Country.SWITZERLAND,
+            Country.GERMANY,
+            Country.UNITED_KINGDOM);
 
         String title = "Preferred Countries";
         String description = "Preferred countries all shown at the top of the list always.";
@@ -80,7 +82,7 @@ public final class PhoneNumberFieldSamples {
 
     public static Node buildDisabledCountrySelectorSample() {
         PhoneNumberField field = new PhoneNumberField();
-        field.setSelectedCountry(PhoneNumberField.Country.GERMANY);
+        field.setSelectedCountry(Country.GERMANY);
         field.setDisableCountryDropdown(true);
         field.setExpectedPhoneNumberType(PhoneNumberUtil.PhoneNumberType.PERSONAL_NUMBER);
 
@@ -93,20 +95,10 @@ public final class PhoneNumberFieldSamples {
     public static Node buildExpectedPhoneNumberTypeSample() {
         PhoneNumberField field = new PhoneNumberField();
         field.setExpectedPhoneNumberType(PhoneNumberUtil.PhoneNumberType.MOBILE);
-        field.setSelectedCountry(PhoneNumberField.Country.COLOMBIA);
+        field.setSelectedCountry(Country.COLOMBIA);
 
         String title = "Fixed Phone Number Type (MOBILE)";
         String description = "Establish an expected phone number type, performs validations against the type and shows an example of the phone number.";
-
-        return buildSample(title, description, field);
-    }
-
-    public static Node buildCountryCodeVisibleSample() {
-        PhoneNumberField field = new PhoneNumberField();
-        field.setCountryCodeVisible(true);
-
-        String title = "Country Code Visible";
-        String description = "Makes the country code always visible in the text field.";
 
         return buildSample(title, description, field);
     }
@@ -136,13 +128,23 @@ public final class PhoneNumberFieldSamples {
         rightBox.setPrefWidth(400);
 
         PhoneNumberLabel phoneNumberLabel = new PhoneNumberLabel();
-        phoneNumberLabel.rawPhoneNumberProperty().bind(field.rawPhoneNumberProperty());
+        phoneNumberLabel.valueProperty().bind(field.e164PhoneNumberProperty());
 
+        ComboBox<Country> countryBox = new ComboBox<>();
+        countryBox.getItems().setAll(Country.values());
+        countryBox.getSelectionModel().select(field.getSelectedCountry());
+        countryBox.valueProperty().bindBidirectional(phoneNumberLabel.countryProperty());
+
+        VBox labelBox = new VBox(10, phoneNumberLabel, countryBox);
+
+        addField(rightBox, "Text", field.textProperty());
+        addField(rightBox, "Value", field.valueProperty());
         addField(rightBox, "Country Code", field.selectedCountryProperty(), COUNTRY_CODE_CONVERTER);
-        addField(rightBox, "Raw Number", field.rawPhoneNumberProperty());
         addField(rightBox, "E164 Format", field.e164PhoneNumberProperty());
         addField(rightBox, "National Format", field.nationalPhoneNumberProperty());
-        addField(rightBox, "PhoneNumberLabel", phoneNumberLabel);
+        addField(rightBox, "International Format", field.internationalPhoneNumberProperty());
+        addField(rightBox, "PhoneNumberLabel", labelBox);
+        addField(rightBox, "Error Type", field.parsingErrorTypeProperty());
         addField(rightBox, "Valid", field.validProperty());
 
         HBox hBox = new HBox(30);
@@ -170,11 +172,15 @@ public final class PhoneNumberFieldSamples {
         valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
     }
 
-    private static void addField(GridPane pane, String name, Label valueLbl) {
-        valueLbl.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+    private static void addField(GridPane pane, String name, Node node) {
+        if (node instanceof VBox) {
+            node.setStyle("-fx-border-color: black; -fx-border-width: 1px; -fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+        } else {
+            node.setStyle("-fx-font-family: monospace; -fx-font-size: 1.2em; -fx-font-weight: bold; -fx-padding: 0 0 0 10;");
+        }
         int row = pane.getRowCount();
         pane.add(new Label(name + ":"), 0, row);
-        pane.add(valueLbl, 1, row);
+        pane.add(node, 1, row);
     }
 
 }
