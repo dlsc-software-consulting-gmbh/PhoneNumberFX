@@ -211,7 +211,7 @@ public class PhoneNumberField extends CustomTextField {
                     e164PhoneNumber.set(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.E164));
                     nationalPhoneNumber.set(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL));
                     internationalPhoneNumber.set(phoneNumberUtil.format(number, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
-                    valid.set(phoneNumberUtil.isValidNumber(number) && isExpectedTypeMatch(number));
+                    valid.set(phoneNumberUtil.isValidNumber(number) && (isExpectedTypeMatch(number) || !isValidityCheckIncludesTypeCheck()));
                     setTooltip(new Tooltip(getE164PhoneNumber()));
                 } catch (NumberParseException e) {
                     parsingErrorType.set(e.getErrorType());
@@ -421,12 +421,40 @@ public class PhoneNumberField extends CustomTextField {
 
     private boolean updating = false;
 
+    private final BooleanProperty validityCheckIncludesTypeCheck = new SimpleBooleanProperty(this, "validityCheckIncludesTypeCheck", false);
+
+    public final boolean isValidityCheckIncludesTypeCheck() {
+        return validityCheckIncludesTypeCheck.get();
+    }
+
+    /**
+     * Determines whether the validity of the field requires a valid phone number type, e.g. when
+     * the expected type is "mobile" then the field will only be valid if the number is not just a
+     * valid number by itself, but it is definitely a "mobile" number.
+     *
+     * @return true if the type of the number is considered when doing the validity check
+     */
+    public final BooleanProperty validityCheckIncludesTypeCheckProperty() {
+        return validityCheckIncludesTypeCheck;
+    }
+
+    public final void setValidityCheckIncludesTypeCheck(boolean validityCheckIncludesTypeCheck) {
+        this.validityCheckIncludesTypeCheck.set(validityCheckIncludesTypeCheck);
+    }
+
     private final BooleanProperty liveFormatting = new SimpleBooleanProperty(this, "liveFormatting", false);
 
     public final boolean isLiveFormatting() {
         return liveFormatting.get();
     }
 
+    /**
+     * A flag that determines whether the displayed text will be formatted while the user is
+     * still entering it or only when the user "commits" the value by typing the ENTER key or by
+     * moving the focus to another field.
+     *
+     * @return true if the field gets constantly formatted
+     */
     public final BooleanProperty liveFormattingProperty() {
         return liveFormatting;
     }
