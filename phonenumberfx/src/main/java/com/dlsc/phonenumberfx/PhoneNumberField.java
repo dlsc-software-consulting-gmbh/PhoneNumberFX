@@ -159,9 +159,7 @@ public class PhoneNumberField extends CustomTextField {
         comboBox.valueProperty().bindBidirectional(selectedCountryProperty());
         comboBox.visibleProperty().bind(showCountryDropdownProperty());
         comboBox.managedProperty().bind(showCountryDropdownProperty());
-
-        ButtonCell buttonCell = new ButtonCell();
-        comboBox.setButtonCell(buttonCell);
+        comboBox.buttonCellProperty().bind(Bindings.createObjectBinding(this::getButtonCell, buttonCellProperty(), valueProperty()));
 
         HBox leftBox = new HBox(comboBox, countryCodePrefixLabel);
         leftBox.getStyleClass().add("left-box");
@@ -567,6 +565,26 @@ public class PhoneNumberField extends CustomTextField {
     @Override
     public String getUserAgentStylesheet() {
         return Objects.requireNonNull(PhoneNumberField.class.getResource("phone-number-field.css")).toExternalForm();
+    }
+
+    private final ObjectProperty<ListCell<Country>> buttonCell = new SimpleObjectProperty<>(this, "buttonCell", new ButtonCell());
+
+    public final ListCell<Country> getButtonCell() {
+        return buttonCell.get();
+    }
+
+    /**
+     * A property that provided the button cell to be displayed by the ComboBox of the control.
+     * By default the combo box displays the flag of the currently selected country.
+     *
+     * @return a list cell to be used as the button cell
+     */
+    public final ObjectProperty<ListCell<Country>> buttonCellProperty() {
+        return buttonCell;
+    }
+
+    public final void setButtonCell(ListCell<Country> buttonCell) {
+        this.buttonCell.set(buttonCell);
     }
 
     private class ButtonCell extends ListCell<Country> {
