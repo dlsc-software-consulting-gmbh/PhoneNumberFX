@@ -41,7 +41,6 @@ public class PhoneNumberLabel extends Label {
      */
     public PhoneNumberLabel() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        getStylesheets().add(Objects.requireNonNull(PhoneNumberLabel.class.getResource("phone-number-label.css")).toExternalForm());
 
         validProperty().addListener((obs, oldV, newV) -> pseudoClassStateChanged(INVALID_PSEUDO_CLASS, !newV));
 
@@ -119,6 +118,11 @@ public class PhoneNumberLabel extends Label {
 
         validProperty().addListener(it -> updateValidPseudoState());
         updateValidPseudoState();
+    }
+
+    @Override
+    public String getUserAgentStylesheet() {
+        return Objects.requireNonNull(PhoneNumberLabel.class.getResource("phone-number-label.css")).toExternalForm();
     }
 
     private void updateValidPseudoState() {
