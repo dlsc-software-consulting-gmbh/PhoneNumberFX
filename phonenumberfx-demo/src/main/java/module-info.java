@@ -1,5 +1,5 @@
 module com.dlsc.phonenumberfx.demo {
-    requires libphonenumber;
+    requires com.google.i18n.phonenumbers.libphonenumber;
 
     requires org.controlsfx.controls;
     requires org.scenicview.scenicview;

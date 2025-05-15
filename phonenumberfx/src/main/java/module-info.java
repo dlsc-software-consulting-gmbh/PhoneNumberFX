@@ -4,7 +4,7 @@ module com.dlsc.phonenumberfx {
     requires transitive javafx.controls;
 
     requires org.controlsfx.controls;
-    requires libphonenumber;
+    requires com.google.i18n.phonenumbers.libphonenumber;
 
     exports com.dlsc.phonenumberfx;
 }
